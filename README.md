@@ -1,3 +1,7 @@
+# 설치 없이 여는 HTML 버전
+
+`downloads/SpecCompare_HTML.zip`을 받아 압축을 푼 뒤 `SpecCompare.html`을 최신 Chrome/Edge에서 여세요. PDF 엔진과 원본 Excel 양식을 포함하며 인터넷·Python·EXE 설치가 필요 없습니다. 사용법과 검증 범위는 browser/README.md와 browser/TEST_REPORT.md에 있습니다.
+
 # SpecCompare
 
 Python 3.11+ / Windows 10·11용 오프라인 PC 부품 PDF 비교 프로그램.

@@ -1,0 +1,18 @@
+# SpecCompare HTML 앱
+
+`SpecCompare.html`을 Chrome 또는 Edge 최신 버전으로 여세요. 인터넷, 서버, Python, EXE 설치 없이 사용합니다.
+
+1. MEMORY/SSD/VGA를 선택합니다.
+2. PDF를 추가하고 ‘스펙 분석’을 누릅니다.
+3. 여러 모델이 있으면 비교할 모델을 선택합니다.
+4. 결과를 확인·수정하고 ‘현재 그룹 엑셀 저장’을 누릅니다.
+
+4개를 초과한 제품은 비교 그룹으로 나뉩니다. 그룹별로 Excel을 저장하세요. 포함된 원본 양식의 해당 시트 C~F열만 수정합니다. 다른 시트와 ZIP 구성요소는 원본 바이트를 유지합니다.
+
+PDF는 외부로 전송하지 않습니다. 라이브러리와 Excel 템플릿이 HTML 안에 들어 있습니다. 종료하면 분석 결과가 사라지므로 먼저 Excel로 저장하세요. 내려받은 Excel은 브라우저 다운로드 목록에서 열면 됩니다.
+
+텍스트 PDF의 ‘항목: 값’, 명확한 모델/용량 표, 모델 헤더 표를 규칙으로 분석합니다. Samsung PM9E1 Rev 1.3 실제 PDF로 검증했습니다. 모든 제조사 PDF를 지원하는 것은 아니며 복잡한 레이아웃은 수동 확인이 필요합니다. 스캔 OCR과 암호 해제는 지원하지 않습니다.
+
+개발 빌드: Node.js 22+에서 `npm ci --prefix browser` 후 `npm run build --prefix browser`. 결과: browser/dist/SpecCompare.html.
+
+테스트는 TEST_REPORT.md를 참조하세요. 실제 사용자 PC의 브라우저 정책이나 오래된 브라우저에서는 실행이 제한될 수 있습니다.

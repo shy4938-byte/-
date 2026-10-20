@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+const require=createRequire(new URL('./package.json',import.meta.url));
+process.chdir(fileURLToPath(new URL('../',import.meta.url)));
+const {build,transform}=require('esbuild');
+const worker=await transform(fs.readFileSync(require.resolve('pdfjs-dist/build/pdf.worker.mjs'),'utf8'),{format:'iife',minify:true,target:'chrome120',define:{'import.meta.url':JSON.stringify('')}});
+const result=await build({entryPoints:['browser/app.js'],bundle:true,write:false,format:'iife',minify:true,target:'chrome120',nodePaths:[path.resolve('browser/node_modules')],legalComments:'inline'});
+let html=fs.readFileSync('browser/shell.html','utf8').replace('__TEMPLATE__',fs.readFileSync('assets/template.xlsx').toString('base64')).replace('__WORKER__',Buffer.from(worker.code).toString('base64'));
+html=html.replace('__APP__',()=>result.outputFiles[0].text.replaceAll('</script','<\\/script'));
+fs.mkdirSync('browser/dist',{recursive:true});fs.writeFileSync('browser/dist/SpecCompare.html',html);
+console.log('Built offline HTML:',html.length);
