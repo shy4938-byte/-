@@ -170,6 +170,18 @@ function excelBytes(category,products){
  const title={MEMORY:'메모리',SSD:'SSD',VGA:'VGA'}[category],sheet=descendants(workbook,'sheet').find(s=>s.getAttribute('name')===title);if(!sheet)throw Error('제품군 시트가 없습니다.');
  const rid=sheet.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'),target=[...rels.documentElement.children].find(r=>r.getAttribute('Id')===rid).getAttribute('Target');
  const path=target.startsWith('/')?target.slice(1):'xl/'+target,doc=xml(entries[path]);
+ // Append centered variants so shared styles on other sheets remain unchanged.
+ const styles=xml(entries['xl/styles.xml']),xfs=descendants(styles,'cellXfs')[0],styleMap=new Map();let stylesChanged=false;
+ function centeredStyle(index){
+  if(styleMap.has(index))return styleMap.get(index);
+  const original=xfs.children[index];if(!original)throw Error('Excel 셀 스타일을 찾을 수 없습니다.');
+  const old=descendants(original,'alignment')[0];
+  if(old?.getAttribute('horizontal')==='center'&&old?.getAttribute('vertical')==='center'){styleMap.set(index,index);return index;}
+  const copy=original.cloneNode(true);let alignment=descendants(copy,'alignment')[0];
+  if(!alignment){alignment=styles.createElementNS(XMLNS,'alignment');const protection=[...copy.children].find(c=>c.localName==='protection');copy.insertBefore(alignment,protection||null);}
+  alignment.setAttribute('horizontal','center');alignment.setAttribute('vertical','center');copy.setAttribute('applyAlignment','1');
+  const result=xfs.children.length;xfs.append(copy);xfs.setAttribute('count',String(xfs.children.length));styleMap.set(index,result);stylesChanged=true;return result;
+ }
  const strings=entries['xl/sharedStrings.xml']?descendants(xml(entries['xl/sharedStrings.xml']),'si').map(s=>descendants(s,'t').map(t=>t.textContent).join('')):[];
  function value(c){return c.getAttribute('t')==='s'?strings[Number(descendants(c,'v')[0]?.textContent)]:c.getAttribute('t')==='inlineStr'?descendants(c,'t').map(t=>t.textContent).join(''):descendants(c,'v')[0]?.textContent||'';}
  for(const field of FIELDS[category]){
@@ -178,13 +190,14 @@ function excelBytes(category,products){
   for(let index=0;index<4;index++){
    const ref=String.fromCharCode(67+index)+rowNumber;let c=[...row.children].find(c=>c.getAttribute('r')===ref);
    if(!c){c=doc.createElementNS(XMLNS,'c');c.setAttribute('r',ref);row.appendChild(c);}
+   c.setAttribute('s',String(centeredStyle(Number(c.getAttribute('s')||0))));
    if(descendants(c,'f').length)throw Error(`${ref}의 수식을 덮어쓸 수 없습니다.`);
    for(const merged of descendants(doc,'mergeCell')){const ends=merged.getAttribute('ref').split(':');const col=x=>x.match(/[A-Z]+/)[0].split('').reduce((a,v)=>a*26+v.charCodeAt(0)-64,0);if(ends.length===2&&col(ends[0])<=index+3&&col(ends[1])>=index+3&&Number(ends[0].match(/\d+/)[0])<=Number(rowNumber)&&Number(ends[1].match(/\d+/)[0])>=Number(rowNumber))throw Error(`${ref}는 병합 셀입니다.`);}
    for(const child of [...c.children])if(['v','is'].includes(child.localName))c.removeChild(child);
    c.removeAttribute('t');if(index<products.length){c.setAttribute('t','inlineStr');const is=doc.createElementNS(XMLNS,'is'),t=doc.createElementNS(XMLNS,'t');t.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve');t.textContent=products[index].values[field].text;is.appendChild(t);c.appendChild(is);}
   }
  }
- entries[path]=strToU8(new XMLSerializer().serializeToString(doc));return zipSync(entries,{level:6});
+ entries[path]=strToU8(new XMLSerializer().serializeToString(doc));if(stylesChanged)entries['xl/styles.xml']=strToU8(new XMLSerializer().serializeToString(styles));return zipSync(entries,{level:6});
 }
 function download(bytes,name,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([bytes],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 let category='SSD',files=[],products=[],group=0,busy=false,selected=null,lastExcel=null;
@@ -213,5 +226,5 @@ $('reset').onclick=()=>{if(products.length&&!confirm('분석 결과와 수동 �
 $('confirm').onclick=()=>{if(!selected)return note('확인할 셀을 먼저 클릭하세요.');const v=selected.p.values[selected.key];if(!v.text.trim()||v.text==='확인 필요')return note('값을 입력한 뒤 확인하세요.');v.status='확인 완료';showEvidence(selected.p,selected.key);render();};
 $('save').onclick=()=>{try{lastExcel={bytes:excelBytes(category,visible()),name:`${category}_SpecCompare_${new Date().toLocaleDateString('sv-SE').replaceAll('-','')}.xlsx`};download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');note('현재 그룹의 Excel 파일을 저장했습니다. 브라우저 다운로드 목록에서 열어주세요.');}catch(e){note(e.message,true);}};
 $('save-again').onclick=()=>{if(lastExcel)download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');else note('엑셀을 먼저 저장하세요.');};
-window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.3-browser'};
+window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.4-browser'};
 render();renderFiles();note('준비 완료 · 인터넷 연결 없이 PDF 분석과 Excel 저장을 사용할 수 있습니다.');
