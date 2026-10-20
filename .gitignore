@@ -10,3 +10,5 @@ browser/samples/
 browser/edited.xlsx
 browser/regression-products.json
 browser/PM9E1_Browser_SpecCompare.xlsx
+
+node_modules
