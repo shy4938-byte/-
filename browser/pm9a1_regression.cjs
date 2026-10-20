@@ -8,13 +8,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const fs=r
  const capacities=['256GB','512GB','1024GB','2048GB'];
  for(let i=0;i<4;i++){
   const v=models[i].values;assert.equal(v['모델명'].text,'Samsung PM9A1 '+capacities[i]);assert.equal(v['용량'].text,capacities[i]);assert.equal(v['인터페이스'].text,'PCI Express Gen4 x4');
-  assert.equal(v['순차읽기 속도'].text,['6,400 / 4,900 MB/s (QD32)','6,900 / 6,300 MB/s (QD32)','7,000 / 6,600 MB/s (QD32)','7,000 / 6,600 MB/s (QD32)'][i]);
-  assert.equal(v['순차쓰기 속도'].text,['2,700 / 500 MB/s (QD32)','5,000 / 1,050 MB/s (QD32)','5,100 / 1,900 MB/s (QD32)','5,200 / 2,000 MB/s (QD32)'][i]);
-  assert.equal(v['랜덤읽기 속도'].text,['500K / 300K IOPS (QD32)','800K / 500K IOPS (QD32)','1,000K / 750K IOPS (QD32)','1,000K / 750K IOPS (QD32)'][i]);
-  assert.equal(v['랜덤쓰기 속도'].text,['600K / 150K IOPS (QD32)','800K / 250K IOPS (QD32)','850K / 500K IOPS (QD32)','850K / 500K IOPS (QD32)'][i]);
+  assert.equal(v['순차읽기 속도'].text,['6,400 MB/s','6,900 MB/s','7,000 MB/s','7,000 MB/s'][i]);
+  assert.equal(v['순차쓰기 속도'].text,['2,700 MB/s','5,000 MB/s','5,100 MB/s','5,200 MB/s'][i]);
+  assert.equal(v['랜덤읽기 속도'].text,['500K IOPS','800K IOPS','1,000K IOPS','1,000K IOPS'][i]);
+  assert.equal(v['랜덤쓰기 속도'].text,['600K IOPS','800K IOPS','850K IOPS','850K IOPS'][i]);
   assert.equal(v['랜덤읽기 속도 · QD1'].text,'18K IOPS');assert.equal(v['랜덤쓰기 속도 · QD1'].text,'53K IOPS');
   assert.equal(v['내구성'].text,['150 TB','300 TB','600 TB','1200 TB'][i]);assert.equal(v['TBW'].text,v['내구성'].text);assert.equal(v['가격'].text,'확인 필요');assert.equal(v['순차읽기 속도'].page,6);
-  assert(v['부품번호'].text.includes('$'));assert(v['순차읽기 속도 · 병기값 설명'].text.includes('TurboWrite 미적용'));
+  assert.equal(v['순차읽기 속도 · 측정 QD'].text,'QD32');assert.equal(v['순차읽기 속도 · TurboWrite 미적용'].text,['4,900 MB/s','6,300 MB/s','6,600 MB/s','6,600 MB/s'][i]);assert.equal(v['순차쓰기 속도 · TurboWrite 미적용'].text,['500 MB/s','1,050 MB/s','1,900 MB/s','2,000 MB/s'][i]);assert(v['부품번호'].text.includes('$'));assert(v['순차읽기 속도 · 병기값 설명'].text.includes('TurboWrite 미적용'));
  }
  console.log('PASS PM9A1: four capacities, family/part numbers, Gen4, all performance values, QD1/QD32, TurboWrite note, TBW and missing price');
  await page.locator('#pdf-input').setInputFiles([e,a]);await page.locator('#analyze').click();
@@ -22,7 +22,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const fs=r
  for(const input of await page.locator('#model-list input').all())await input.uncheck();await page.locator('#model-list input').nth(0).check();await page.locator('#model-dialog button[value="ok"]').click();
  await page.locator('#model-list').getByText(/Samsung PM9A1/).first().waitFor();
  for(const input of await page.locator('#model-list input').all())await input.uncheck();await page.locator('#model-list input').nth(1).check();await page.locator('#model-dialog button[value="ok"]').click();
- await page.waitForFunction(()=>!document.querySelector('#analyze').disabled);const comparison=await page.evaluate(()=>SpecCompare.getProducts());assert.equal(comparison.length,2);assert.equal(comparison[0].values['모델명'].text,'Samsung PM9E1 512GB');assert.equal(comparison[1].values['모델명'].text,'Samsung PM9A1 512GB');
+ await page.waitForFunction(()=>!document.querySelector('#analyze').disabled);const comparison=await page.evaluate(()=>SpecCompare.getProducts());assert.equal(comparison.length,2);assert.equal(comparison[0].values['모델명'].text,'Samsung PM9E1 512GB');assert.equal(comparison[1].values['모델명'].text,'Samsung PM9A1 512GB');assert.equal(await page.getByRole('textbox',{name:'순차읽기 속도 제품 1',exact:true}).inputValue(),'12,200 MB/s');assert.equal(await page.getByRole('textbox',{name:'순차읽기 속도 제품 2',exact:true}).inputValue(),'6,900 MB/s');assert.equal(comparison[0].values['순차읽기 속도 · 측정 QD'].text,'QD256');assert.equal(comparison[0].values['순차읽기 속도 · TurboWrite 미적용'].text,'확인 필요');
  const download=page.waitForEvent('download');await page.locator('#save').click();await(await download).saveAs(path.join(process.env.SPECCOMPARE_TEST_OUTPUT||__dirname,'PM9E1_PM9A1_512GB.xlsx'));
  assert.equal(errors.length,0,errors.join('\n'));console.log('PASS two-PDF upload, independent model selections, no empty column, Excel download, zero page errors');
 }finally{await browser.close();}})().catch(err=>{console.error(err);process.exitCode=1});

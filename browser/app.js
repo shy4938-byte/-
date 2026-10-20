@@ -85,7 +85,11 @@ function parsePages(pages,source,category){
      if(normalize(p.values['용량'].text)!==normalize(caps[c].text))continue;
      for(const key of marker.keys){
       const conditioned=records.length>1||main.values[c].includes('/');
-      const text=`${main.values[c]} ${main.unit}${conditioned&&main.qd?' (QD'+main.qd+')':''}`;
+      const pieces=main.values[c].split('/').map(v=>v.trim());
+      const magnitude=v=>Number(v.replaceAll(',','').replace(/K$/i,''))*(/K$/i.test(v)?1000:1);
+      const maximum=/속도$/.test(key)?[...pieces].sort((a,b)=>magnitude(b)-magnitude(a))[0]:main.values[c];
+      const text=`${maximum} ${main.unit}`;
+      if(/순차/.test(key))p.values[`${key} · TurboWrite 미적용`]??=blank();
       const evidence=header.text+'\n'+marker.row.text+'\n'+band.map(r=>r.text).join('\n');
       assign(p,key,text,page.number,evidence);
       if(main.qd)assign(p,`${key} · 측정 QD`,'QD'+main.qd,page.number,evidence);
@@ -93,6 +97,7 @@ function parsePages(pages,source,category){
        for(const record of records)assign(p,`${key} · ${record.qd?'QD'+record.qd:'측정값'}`,`${record.values[c]} ${record.unit}`,page.number,evidence);
        if(main.values[c].includes('/')){
         const seq=/순차/.test(key)&&/Performance without TurboWrite technology/i.test(page.text);
+        if(seq&&pieces.length===2)assign(p,`${key} · TurboWrite 미적용`,`${pieces[1]} ${main.unit}`,page.number,evidence+'\n'+page.rows.filter(r=>/Performance without TurboWrite technology/i.test(r.text)).map(r=>r.text).join('\n'));
         assign(p,`${key} · 병기값 설명`,seq?'두 번째 값: TurboWrite 미적용 (주석 5)':'슬래시 양쪽 값을 원문 그대로 보존. 추가 측정 조건은 원문 검토 필요',page.number,evidence+'\n'+page.rows.filter(r=>/Performance without TurboWrite technology/i.test(r.text)).map(r=>r.text).join('\n'));
        }
       }
@@ -208,5 +213,5 @@ $('reset').onclick=()=>{if(products.length&&!confirm('분석 결과와 수동 �
 $('confirm').onclick=()=>{if(!selected)return note('확인할 셀을 먼저 클릭하세요.');const v=selected.p.values[selected.key];if(!v.text.trim()||v.text==='확인 필요')return note('값을 입력한 뒤 확인하세요.');v.status='확인 완료';showEvidence(selected.p,selected.key);render();};
 $('save').onclick=()=>{try{lastExcel={bytes:excelBytes(category,visible()),name:`${category}_SpecCompare_${new Date().toLocaleDateString('sv-SE').replaceAll('-','')}.xlsx`};download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');note('현재 그룹의 Excel 파일을 저장했습니다. 브라우저 다운로드 목록에서 열어주세요.');}catch(e){note(e.message,true);}};
 $('save-again').onclick=()=>{if(lastExcel)download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');else note('엑셀을 먼저 저장하세요.');};
-window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.2-browser'};
+window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.3-browser'};
 render();renderFiles();note('준비 완료 · 인터넷 연결 없이 PDF 분석과 Excel 저장을 사용할 수 있습니다.');
