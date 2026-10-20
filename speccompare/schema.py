@@ -28,6 +28,8 @@ class Value:
     page: int | None = None
     evidence: str = ''
     status: str = '미확인'
+    confidence: float = 0.0
+    conflict: bool = False
 @dataclass
 class Product:
     source: str
@@ -37,3 +39,18 @@ class Product:
     @property
     def name(self):
         return self.values.get('모델명', Value()).text
+
+# Semantic synonyms are shared by table, coordinate and prose extraction.
+ALIASES['모델명'] += ['product code', 'part no.', 'part no', 'model number', 'model no.', 'sku', 'product model']
+ALIASES['제조사'] += ['brand', 'maker', '브랜드']
+ALIASES['용량'] += ['module capacity', 'module size', 'storage capacity', 'total capacity']
+ALIASES['동작속도'] += ['transfer rate', 'data transfer rate', 'speed', 'frequency', 'rated speed', 'speed rating']
+ALIASES['메모리 규격'] += ['type', 'technology', 'module standard']
+ALIASES['순차읽기 속도'] += ['sequential read speed', 'seq read', 'seq. read', '순차 읽기']
+ALIASES['순차쓰기 속도'] += ['sequential write speed', 'seq write', 'seq. write', '순차 쓰기']
+ALIASES['랜덤읽기 속도'] += ['random read speed', 'random read iops', '4k random read', '랜덤 읽기']
+ALIASES['랜덤쓰기 속도'] += ['random write speed', 'random write iops', '4k random write', '랜덤 쓰기']
+ALIASES['VRAM 용량'] += ['video memory', 'graphics memory', 'memory capacity']
+ALIASES['VRAM 종류'] += ['memory technology']
+ALIASES['소비전력'] += ['graphics card power', 'board power', 'typical board power', 'thermal design power']
+ALIASES['Rank'] += ['number of rank', 'number of ranks', '# of ranks', 'ranks']

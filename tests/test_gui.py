@@ -33,3 +33,18 @@ class Gui(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'저장.xlsx'; export(ROOT/'assets/template.xlsx',path,'MEMORY',window.visible()); w=load_workbook(path); self.assertEqual(w['메모리']['C5'].value,'4'); w.close()
         window.close()
+
+    def test_model_selection_dialog_and_center_alignment(self):
+        from PySide6.QtCore import QTimer, Qt
+        from PySide6.QtWidgets import QDialog, QListWidget
+        window=Window()
+        products=[Product('same.pdf','MEMORY',{k:Value(str(i)) for k in FIELDS['MEMORY']}) for i in range(2)]
+        def choose():
+            dialog=app.activeModalWidget()
+            if isinstance(dialog,QDialog):
+                dialog.findChild(QListWidget).selectAll();dialog.accept()
+        QTimer.singleShot(30,choose)
+        window.analysis_result(products,[])
+        self.assertEqual(len(window.products),2)
+        self.assertTrue(window.table.item(0,1).textAlignment() & Qt.AlignmentFlag.AlignHCenter)
+        window.close()

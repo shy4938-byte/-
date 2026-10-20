@@ -1,3 +1,9 @@
+# SpecCompare Windows 배포
+
+[Windows 다운로드·실행 안내](README_WINDOWS.md) · [GitHub Actions](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
+
+Windows 네이티브 빌드와 실행 검증이 성공한 파일만 자동 게시합니다. 실제 ZIP 위치와 해시는 배포 작업이 생성하는 downloads/SpecCompare_Windows_v1.0.0.json에서 확인할 수 있습니다.
+
 # 설치 없이 여는 HTML 버전
 
 `downloads/SpecCompare_HTML.zip`을 받아 압축을 푼 뒤 `SpecCompare.html`을 최신 Chrome/Edge에서 여세요. PDF 엔진과 원본 Excel 양식을 포함하며 인터넷·Python·EXE 설치가 필요 없습니다. 사용법과 검증 범위는 browser/README.md와 browser/TEST_REPORT.md에 있습니다.

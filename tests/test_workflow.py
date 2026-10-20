@@ -55,15 +55,20 @@ class Workflow(unittest.TestCase):
                 for s in before:
                     t=after[s.title]
                     self.assertEqual(str(s.merged_cells),str(t.merged_cells)); self.assertEqual(s.print_area,t.print_area); self.assertEqual(s.page_setup,t.page_setup)
-                    self.assertEqual({k:(v.width,v.hidden,v.style_id,v.min,v.max) for k,v in s.column_dimensions.items()},{k:(v.width,v.hidden,v.style_id,v.min,v.max) for k,v in t.column_dimensions.items()}); self.assertEqual({k:(v.height,v.hidden,v.style_id) for k,v in s.row_dimensions.items()},{k:(v.height,v.hidden,v.style_id) for k,v in t.row_dimensions.items()})
+                    self.assertEqual({k:(v.width,v.hidden,tuple(v._style or ()),v.min,v.max) for k,v in s.column_dimensions.items()},{k:(v.width,v.hidden,tuple(v._style or ()),v.min,v.max) for k,v in t.column_dimensions.items()}); self.assertEqual({k:(v.height,v.hidden,tuple(v._style or ())) for k,v in s.row_dimensions.items()},{k:(v.height,v.hidden,tuple(v._style or ())) for k,v in t.row_dimensions.items()})
                     for row in s:
                         for cell in row:
-                            other=t[cell.coordinate]; self.assertEqual(cell._style,other._style)
+                            other=t[cell.coordinate]
+                            from copy import copy
+                            if s.title==name and cell.column in range(3,7) and cell.row in mapping.values():
+                                self.assertEqual(other.alignment.horizontal,'center');self.assertEqual(other.alignment.vertical,'center')
+                                self.assertEqual(copy(cell.font),copy(other.font));self.assertEqual(copy(cell.border),copy(other.border));self.assertEqual(copy(cell.fill),copy(other.fill))
+                            else:self.assertEqual(cell._style,other._style)
                             if s.title!=name or cell.column not in range(3,7) or cell.row not in mapping.values(): self.assertEqual(cell.value,other.value)
                 import zipfile
                 with zipfile.ZipFile(template) as a, zipfile.ZipFile(out) as b:
                     changed=[n for n in a.namelist() if a.read(n)!=b.read(n)]
-                    self.assertEqual(len(changed),1); self.assertTrue(changed[0].startswith('xl/worksheets/'))
+                    self.assertTrue(1<=len(changed)<=2); self.assertEqual(len([n for n in changed if n.startswith('xl/worksheets/')]),1); self.assertTrue(all(n.startswith('xl/worksheets/') or n=='xl/styles.xml' for n in changed))
                 self.assertEqual(after[name]['C5'].data_type,'s'); before.close(); after.close()
         self.assertEqual(template.read_bytes(),original)
         with self.assertRaises(ValueError): export(template,template,'MEMORY',[])

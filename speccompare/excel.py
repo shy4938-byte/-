@@ -51,6 +51,27 @@ def export(template, destination, category, products):
             filename = target.lstrip('/') if target.startswith('/') else 'xl/'+target
             root = ET.fromstring(source.read(filename))
             data = root.find('s:sheetData',ns)
+            styles=ET.fromstring(source.read('xl/styles.xml'))
+            xfs=styles.find('s:cellXfs',ns)
+            centered={}; styles_changed=False
+            def center_style(index):
+                nonlocal styles_changed
+                if index in centered: return centered[index]
+                original=xfs[index]
+                alignment=original.find('s:alignment',ns)
+                if alignment is not None and alignment.get('horizontal')=='center' and alignment.get('vertical')=='center':
+                    centered[index]=index; return index
+                from copy import deepcopy
+                clone=deepcopy(original)
+                alignment=clone.find('s:alignment',ns)
+                if alignment is None:
+                    alignment=ET.Element('{'+ns['s']+'}alignment')
+                    protection=clone.find('s:protection',ns)
+                    clone.insert(list(clone).index(protection) if protection is not None else len(clone),alignment)
+                alignment.set('horizontal','center');alignment.set('vertical','center')
+                clone.set('applyAlignment','1'); new_index=len(xfs);xfs.append(clone)
+                xfs.set('count',str(len(xfs)));centered[index]=new_index;styles_changed=True
+                return new_index
             for field, row_number in mapping.items():
                 row = next(r for r in data if int(r.attrib['r'])==row_number)
                 for index in range(4):
@@ -58,6 +79,7 @@ def export(template, destination, category, products):
                     cell = next((c for c in row if c.attrib.get('r')==coordinate),None)
                     if cell is None:
                         cell = ET.SubElement(row,'{'+ns['s']+'}c',{'r':coordinate})
+                    cell.set('s',str(center_style(int(cell.get('s','0')))))
                     for child in list(cell):
                         if child.tag in ['{'+ns['s']+'}v','{'+ns['s']+'}is']:
                             cell.remove(child)
@@ -71,9 +93,31 @@ def export(template, destination, category, products):
                 row[:] = sorted(row,key=lambda c:(len(c.attrib.get('r','').rstrip('0123456789')),c.attrib.get('r','').rstrip('0123456789')))
             with tempfile.NamedTemporaryFile(dir=Path(destination).parent,suffix='.xlsx',delete=False) as f:
                 temporary=f.name
+            def serialize(node,original):
+                # Keep Excel's namespace aliases, including mc:Ignorable prefixes.
+                import io,re
+                from xml.sax.saxutils import quoteattr
+                namespaces=dict(value for _,value in ET.iterparse(io.BytesIO(original),events=('start-ns',)))
+                for prefix,uri in namespaces.items():
+                    if not re.fullmatch(r'ns\d+',prefix): ET.register_namespace(prefix,uri)
+                payload=ET.tostring(node,encoding='utf-8',xml_declaration=True)
+                offset=payload.find(b'?>')+2
+                end=payload.find(b'>',offset)
+                opening=payload[offset:end]
+                extra=[]
+                for prefix,uri in namespaces.items():
+                    name='xmlns'+(':'+prefix if prefix else '')
+                    if not re.search(rb'\s'+re.escape(name.encode())+rb'=',opening):
+                        extra.append(' '+name+'='+quoteattr(uri))
+                return payload[:end]+''.join(extra).encode()+payload[end:]
             with zipfile.ZipFile(temporary,'w') as output:
                 for entry in source.infolist():
-                    output.writestr(entry,ET.tostring(root,encoding='utf-8',xml_declaration=True) if entry.filename==filename else source.read(entry.filename))
+                    if entry.filename==filename:
+                        payload=serialize(root,source.read(filename))
+                    elif entry.filename=='xl/styles.xml' and styles_changed:
+                        payload=serialize(styles,source.read('xl/styles.xml'))
+                    else: payload=source.read(entry.filename)
+                    output.writestr(entry,payload)
         os.replace(temporary,destination)
     finally:
         if temporary and os.path.exists(temporary): os.unlink(temporary)
