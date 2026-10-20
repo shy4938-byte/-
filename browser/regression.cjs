@@ -8,6 +8,15 @@ const pm=process.env.SPECCOMPARE_PM9E1_PDF;if(!pm)throw Error('SPECCOMPARE_PM9E1
 await page.locator('#pdf-input').setInputFiles(pm);await page.locator('#analyze').click();await page.locator('#model-dialog').waitFor({state:'visible',timeout:30000});assert.equal(await page.locator('#model-list input').count(),4);await page.locator('#model-dialog button[value="ok"]').click();await page.waitForFunction(()=>!document.querySelector('#analyze').disabled);
 const products=await page.evaluate(()=>SpecCompare.getProducts());assert.equal(products.length,4);
 for(let i=0;i<4;i++){assert.equal(products[i].values['순차쓰기 속도'].text,['7,000 MB/s','12,500 MB/s','12,500 MB/s','12,600 MB/s'][i]);assert.equal(products[i].values['내구성'].text,['300 TB','600 TB','1,200 TB','2,400 TB'][i]);assert.match(products[i].values['인터페이스'].text,/PCI Express\s*®?\s*Gen\.5 x4/);assert.equal(products[i].values['가격'].text,'확인 필요');}
+for(let i=0;i<4;i++){
+ assert.equal(products[i].values['모델명'].text,`Samsung PM9E1 ${['512GB','1024GB','2048GB','4096GB'][i]}`);
+ assert.equal(products[i].values['부품번호'].text,['MZVLC512HFJD-00B07','MZVLC1T0HFLU-00B07','MZVLC2T0HBLD-00B07','MZVLC4T0HBL1-00B07'][i]);
+ assert.equal(products[i].values['제품군 모델명'].text,'PM9E1');assert.equal(products[i].values['모델명'].page,1);
+}
+assert.equal(await page.getByRole('textbox',{name:'모델명 제품 1',exact:true}).inputValue(),'Samsung PM9E1 512GB');
+await page.locator('.header-tools').first().getByRole('button',{name:'상세',exact:true}).click();
+assert.match(await page.locator('#evidence').innerText(),/부품번호: MZVLC512HFJD-00B07/);
+console.log('PASS product-family labels, separate part numbers and source evidence');
 console.log('PASS real PM9E1 upload, model selector, per-capacity specifications');
 let download=page.waitForEvent('download');await page.locator('#save').click();await (await download).saveAs(require('path').join(process.env.SPECCOMPARE_TEST_OUTPUT||__dirname,'PM9E1_Browser_SpecCompare.xlsx'));
 await page.getByRole('textbox',{name:'제조사 제품 1',exact:true}).fill('수동 수정');await page.locator('#confirm').click();assert.equal((await page.evaluate(()=>SpecCompare.getProducts()))[0].values['제조사'].status,'확인 완료');

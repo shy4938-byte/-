@@ -73,6 +73,18 @@ function parsePages(pages,source,category){
     const m=page.text.match(re);if(m)assign(p,key,m[0],page.number,m[0]);
    }
   }
+  // A cover title identifies the shared product family; catalogue codes remain part numbers.
+  const cover=pages[0],titles=[...cover.text.matchAll(/\bSAMSUNG\s+SSD\s+([A-Z][A-Z0-9-]*)\b/gi)];
+  const families=new Set(titles.map(m=>m[1].toUpperCase()));
+  if(families.size===1&&[...products.values()].every(p=>cover.text.includes(p.values['모델명'].text))){
+   const title=titles[0],family=title[1].toUpperCase();
+   for(const p of products.values()){
+    const part={...p.values['모델명']},cap=p.values['용량'];
+    p.values['부품번호']=part;
+    p.values['제품군 모델명']={text:family,status:'검토 필요',page:cover.number,evidence:title[0]};
+    p.values['모델명']={text:`Samsung ${family}${cap.text!=='확인 필요'?' '+cap.text:''}`,status:'검토 필요',page:cover.number,evidence:`p.${cover.number}: ${title[0]}\np.${part.page}: ${part.evidence}\n제품군명과 해당 부품번호의 용량을 함께 표시`};
+   }
+  }
   return [...products.values()];
  }
  // Explicit horizontal model headers. Never use Capacity / LBA Count as model names.
@@ -160,5 +172,5 @@ $('reset').onclick=()=>{if(products.length&&!confirm('분석 결과와 수동 �
 $('confirm').onclick=()=>{if(!selected)return note('확인할 셀을 먼저 클릭하세요.');const v=selected.p.values[selected.key];if(!v.text.trim()||v.text==='확인 필요')return note('값을 입력한 뒤 확인하세요.');v.status='확인 완료';showEvidence(selected.p,selected.key);render();};
 $('save').onclick=()=>{try{lastExcel={bytes:excelBytes(category,visible()),name:`${category}_SpecCompare_${new Date().toLocaleDateString('sv-SE').replaceAll('-','')}.xlsx`};download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');note('현재 그룹의 Excel 파일을 저장했습니다. 브라우저 다운로드 목록에서 열어주세요.');}catch(e){note(e.message,true);}};
 $('save-again').onclick=()=>{if(lastExcel)download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');else note('엑셀을 먼저 저장하세요.');};
-window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.0-browser'};
+window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.1-browser'};
 render();renderFiles();note('준비 완료 · 인터넷 연결 없이 PDF 분석과 Excel 저장을 사용할 수 있습니다.');

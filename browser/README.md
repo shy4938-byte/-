@@ -16,3 +16,6 @@ PDF는 외부로 전송하지 않습니다. 라이브러리와 Excel 템플릿�
 개발 빌드: Node.js 22+에서 `npm ci --prefix browser` 후 `npm run build --prefix browser`. 결과: browser/dist/SpecCompare.html.
 
 테스트는 TEST_REPORT.md를 참조하세요. 실제 사용자 PC의 브라우저 정책이나 오래된 브라우저에서는 실행이 제한될 수 있습니다.
+
+## 1.1.1 표시 수정
+Samsung PM9E1 데이터시트는 모델명에 제조사·제품군·용량을 표시합니다(예: Samsung PM9E1 512GB). 기존 Part Number는 상세의 ‘부품번호’로 보존합니다. 표지의 제품군과 품번을 함께 확인할 수 있는 문서에만 적용하며 임의로 추정하지 않습니다.

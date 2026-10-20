@@ -17,3 +17,6 @@ Linux Chromium, Playwright의 offline=true 컨텍스트에서 검증했습니다
 자동 검증 스크립트는 regression.cjs입니다. Playwright를 설치한 뒤 PLAYWRIGHT_MODULE(선택), SPECCOMPARE_HTML, SPECCOMPARE_PM9E1_PDF, SPECCOMPARE_SAMPLES, SPECCOMPARE_TEST_OUTPUT 환경변수로 로컬 경로를 지정할 수 있습니다. samples 생성은 generate_samples.py를 사용하세요. 실제 제조사 PDF는 소스나 앱에 포함하지 않습니다.
 
 원본 EXE를 사용자 PC에서 실행하지 못한 정확한 원인은 아직 확정되지 않았습니다. 이번 HTML 배포본은 해당 설치 프로그램을 사용하지 않습니다.
+
+## 1.1.1 회귀 검증
+실제 PM9E1 PDF의 네 모델에 대해 제조사·제품군·용량 표시, 부품번호 분리, 표지/제품 목록의 근거 보존을 확인했습니다. UI 모델명과 상세정보, 내려받은 Excel C6:F6을 검사했으며 기존 성능값도 유지됩니다. 기존 브라우저 회귀 검증도 모두 통과했습니다.
