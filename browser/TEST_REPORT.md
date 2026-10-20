@@ -30,3 +30,7 @@ PM9A1의 4개 용량에 대해 순차/랜덤 최대 속도만 표시되고 QD·�
 
 ## 1.1.4 정렬 검증
 Chromium 화면의 비교표 th/td/input 계산 정렬이 모두 center임을 확인했습니다. MEMORY/SSD/VGA 내보내기의 C~F 입력 셀 가로/세로 정렬을 openpyxl로 검사했습니다. 원본과 비교하여 선택 시트 XML 및 필요한 추가 스타일 정의만 변경되며 다른 시트, 기존 글꼴·테두리·배경색·표시 형식을 보존합니다. 분석 로직은 변경하지 않았습니다.
+
+## 1.1.5 실제 메모리 PDF 검증
+사용자 제공 ESSENCORE/KLEVV 71페이지 PDF와 Samsung DDR5 81페이지 PDF를 오프라인 Chromium에서 처리했습니다. ESSENCORE p.4의 16GB/5600 MT/s/CL46/46-46-46/1 Rank와 Samsung p.5의 16GB·32GB/5600 MT/s/CL46/46-45-45/1·2 Rank를 대조했습니다. 폼팩터 SO-DIMM/UDIMM, 1.1 V, 품번 보존, 미확인 가격, On-Die ECC와 미확인 모듈 ECC 구분을 검사했습니다. SSD 탭에서의 잘못된 제품군 안내, MEMORY 탭에서 두 PDF 업로드→삼성 모델 선택→16GB끼리 Excel 저장을 테스트했습니다. Excel 실제 값·단위·CL46·가운데 정렬 및 다른 구성요소 보존을 확인했습니다. 기존 PM9E1/PM9A1 실제 PDF 회귀 테스트도 통과했습니다.
+재현: memory_regression.cjs에 SPECCOMPARE_ESSENCORE_PDF, SPECCOMPARE_SAMSUNG_DDR5_PDF 및 기존 Playwright/Chromium 환경변수를 지정하세요. 원본 PDF는 배포 ZIP에 포함하지 않습니다.

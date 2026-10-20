@@ -35,7 +35,75 @@ function cellAt(row,centers,index){
  const left=index? (centers[index-1]+centers[index])/2:-Infinity,right=index+1<centers.length?(centers[index]+centers[index+1])/2:Infinity;
  return row.items.filter(i=>i.center>=left&&i.center<right).map(i=>i.text).join(' ').trim();
 }
+// Join adjacent PDF text fragments within a table cell (e.g. "16" + "GB").
+function memoryClusters(row){
+ const groups=[];
+ for(const item of row.items){const end=item.center*2-item.x,last=groups.at(-1);if(last&&item.x-last.end<15){last.text+=item.text.replace(/\s+/g,'');last.end=Math.max(last.end,end);last.center=(last.x+last.end)/2;}else groups.push({text:item.text.replace(/\s+/g,''),x:item.x,end,center:item.center});}
+ return groups;
+}
+function memoryProducts(pages,source){
+ const products=new Map();
+ for(const page of pages){
+  const all=page.rows.flatMap(row=>row.items.map(i=>({...i,y:row.y})));
+  for(const modelHeader of all.filter(i=>matches(i.text,'모델명'))){
+   const density=all.find(i=>Math.abs(i.y-modelHeader.y)<10&&matches(i.text,'용량'));
+   if(!density||density.center<=modelHeader.center)continue;
+   const organization=all.find(i=>Math.abs(i.y-modelHeader.y)<10&&/^organization$/i.test(i.text));
+   const rank=all.find(i=>Math.abs(i.y-modelHeader.y)<20&&/^ranks?$/i.test(i.text));
+   const modelRight=(modelHeader.center+density.center)/2,capRight=organization?(density.center+organization.center)/2:density.center+35;
+   for(const row of page.rows.filter(r=>r.y<modelHeader.y-5&&r.y>modelHeader.y-110)){
+    const model=row.items.filter(i=>i.center<modelRight).map(i=>i.text).join('').replace(/\s+/g,''),cap=row.items.filter(i=>i.center>=modelRight&&i.center<capRight).map(i=>i.text).join('').replace(/\s+/g,'');
+    if(!capacity(cap)||!/^[A-Z][A-Z0-9.$/-]*\d[A-Z0-9.$/-]*$/i.test(model))continue;
+    const p=products.get(model)||product(source,'MEMORY');assign(p,'모델명',model,page.number,row.text);assign(p,'부품번호',model,page.number,row.text);assign(p,'용량',cap,page.number,row.text);
+    if(rank){const value=row.items.find(i=>Math.abs(i.center-rank.center)<20&&/^[1-8]$/.test(i.text));if(value)assign(p,'Rank',value.text+' Rank',page.number,row.text);}
+    p.orderingPage=page.number;products.set(model,p);
+   }
+  }
+ }
+ if(!products.size)return [];
+ const front=pages.slice(0,6),cover=pages[0],manufacturer=front.find(p=>/Essencore/i.test(p.text))?'ESSENCORE':front.some(p=>/SAMSUNG/i.test(p.text))?'Samsung':null;
+ const makerPage=manufacturer&&front.find(p=>(manufacturer==='ESSENCORE'?/Essencore/i:/SAMSUNG/i).test(p.text));
+ const factor=/SO[\s-]*DIMM/i.test(cover.text)?'SO-DIMM':/UDIMM|Unbuffered\s+DIMM/i.test(cover.text)?'UDIMM':null;
+ for(const p of products.values()){
+  const ordering=pages.find(page=>page.number===p.orderingPage);
+  if(manufacturer)assign(p,'제조사',manufacturer,makerPage.number,makerPage.rows.find(r=>(manufacturer==='ESSENCORE'?/Essencore/i:/SAMSUNG/i).test(r.text)).text);
+  if(/DDR5/i.test(cover.text+'\n'+ordering.text)){
+   assign(p,'DDR 세대','DDR5',cover.number,cover.rows.find(r=>/DDR5/i.test(r.text))?.text||ordering.rows.find(r=>/DDR5/i.test(r.text))?.text||'');
+   if(factor){assign(p,'폼팩터',factor,cover.number,cover.rows.find(r=>/DIMM/i.test(r.text))?.text||'');assign(p,'메모리 규격','DDR5 '+factor,cover.number,cover.rows.find(r=>/DIMM/i.test(r.text))?.text||'');}
+  }
+  const voltagePage=front.find(page=>/VDD[^\n]*?1\.1\s*V/i.test(page.text));
+  if(voltagePage){const row=voltagePage.rows.find(r=>/VDD[^\n]*?1\.1\s*V/i.test(r.text));assign(p,'전압','1.1 V',voltagePage.number,row.text);}
+  const onDie=front.find(page=>/On[\s-]*Die\s+ECC/i.test(page.text));
+  if(onDie){assign(p,'On-Die ECC','명시됨',onDie.number,onDie.rows.find(r=>/On[\s-]*Die\s+ECC/i.test(r.text)).text);p.warnings.push('On-Die ECC는 모듈 ECC 지원 여부와 다릅니다. 모듈 ECC는 별도 확인하세요.');}
+  // Only use the speed-bin table on this module's ordering page.
+  const binRows=ordering.rows.map(row=>({row,bins:memoryClusters(row).filter(c=>/^DDR5-\d{4}$/i.test(c.text))})).filter(v=>v.bins.length);
+  const bins=binRows.flatMap(v=>v.bins.map(bin=>({...bin,row:v.row,rate:bin.text.match(/\d{4}$/)[0]})));
+  const choices=[...new Set(bins.map(b=>b.rate))];let rate=choices.length===1?choices[0]:null,mappingEvidence='';
+  if(choices.length>1){
+   for(const row of ordering.rows){const m=row.text.match(/[“"']([A-Z]{2,3})[”"']\s*[–-]\s*(\d{4})\s*Mbps/i);if(m&&p.values['모델명'].text.endsWith(m[1])&&choices.includes(m[2])){rate=m[2];mappingEvidence=row.text;}}
+  }
+  if(!rate){p.warnings.push('여러 속도 구간 중 해당 품번의 조건을 확정하지 못했습니다. 속도와 지연시간을 원문에서 확인하세요.');continue;}
+  const bin=bins.find(b=>b.rate===rate),evidence=bin.row.text+(mappingEvidence?'\n'+mappingEvidence:'');
+  assign(p,'동작속도',rate+' MT/s',ordering.number,evidence);
+  // A horizontal speed-bin matrix uses a CAS Latency row in nCK.
+  if(choices.length>1){
+   const cas=ordering.rows.find(r=>r.y<bin.row.y&&bin.row.y-r.y<100&&/CAS\s+Latency/i.test(r.text));
+   if(cas){const cs=binRows.find(v=>v.bins.includes(bin))?.bins||bins.filter(b=>b.row===bin.row),centers=cs.map(b=>b.center),idx=cs.findIndex(b=>b.rate===rate);const val=cellAt({items:cas.items.filter(i=>i.center>centers[0]-35&&i.center<centers.at(-1)+35)},centers,idx).replace(/\s+/g,'');if(/^\d{2}$/.test(val))assign(p,'지연시간','CL'+val,ordering.number,evidence+'\n'+cas.text);}
+   const timing=ordering.rows.filter(r=>r.y<bin.row.y&&bin.row.y-r.y<30).flatMap(r=>memoryClusters(r).map(c=>({...c,row:r}))).find(c=>Math.abs(c.center-bin.center)<35&&/^\d{2}-\d{2}-\d{2}$/.test(c.text));
+   if(timing)assign(p,'타이밍(CL-tRCD-tRP)',timing.text,ordering.number,evidence+'\n'+timing.row.text);
+  }else{
+   const timings=memoryClusters(bin.row).filter(c=>/^\d{2}-\d{2}-\d{2}$/.test(c.text));
+   if(timings.length===1&&/CL[\s-]*tRCD[\s-]*tRP/i.test(ordering.text)){
+    assign(p,'지연시간','CL'+timings[0].text.split('-')[0],ordering.number,evidence);
+    assign(p,'타이밍(CL-tRCD-tRP)',timings[0].text,ordering.number,evidence);
+   }
+  }
+  delete p.orderingPage;
+ }
+ return [...products.values()];
+}
 function parsePages(pages,source,category){
+ if(category==='MEMORY'){const modules=memoryProducts(pages,source);if(modules.length)return modules;}
  const keys=[...FIELDS[category],...EXTRAS[category]],products=new Map();
  // Explicit row catalogues: Part Number / Capacity, with columns located by PDF coordinates.
  for(const page of pages)for(let h=0;h<page.rows.length;h++){
@@ -158,6 +226,10 @@ async function analyze(file,category,progress=()=>{}){
   doc=await task.promise;const pages=[];
   for(let n=1;n<=doc.numPages;n++){const page=await doc.getPage(n),content=await page.getTextContent();const rows=rowsFromItems(content.items);pages.push({number:n,rows,text:rows.map(r=>r.text).join('\n')});page.cleanup();progress(n/doc.numPages);}
   if(!pages.some(p=>p.text.trim()))throw Error('텍스트 없는 스캔 PDF입니다. 외부 OCR 처리 후 다시 추가하세요.');
+  const titleText=pages.slice(0,2).map(p=>p.text).join('\n');
+  const moduleText=pages.slice(0,6).map(p=>p.text).join('\n');
+  const memoryDocument=/DDR\s*[345]/i.test(moduleText)&&/SO[\s-]*DIMM|UDIMM|Unbuffered\s+DIMM/i.test(titleText);
+  if(memoryDocument&&category!=='MEMORY')throw Error('메모리 데이터시트입니다. MEMORY 탭을 선택한 뒤 다시 분석하세요.');
   return parsePages(pages,file.name,category);
  }catch(e){if(e.name==='PasswordException')throw Error('암호화 PDF입니다. 암호를 해제한 파일을 사용하세요.');throw e;}finally{await task.destroy();}
 }
@@ -226,5 +298,5 @@ $('reset').onclick=()=>{if(products.length&&!confirm('분석 결과와 수동 �
 $('confirm').onclick=()=>{if(!selected)return note('확인할 셀을 먼저 클릭하세요.');const v=selected.p.values[selected.key];if(!v.text.trim()||v.text==='확인 필요')return note('값을 입력한 뒤 확인하세요.');v.status='확인 완료';showEvidence(selected.p,selected.key);render();};
 $('save').onclick=()=>{try{lastExcel={bytes:excelBytes(category,visible()),name:`${category}_SpecCompare_${new Date().toLocaleDateString('sv-SE').replaceAll('-','')}.xlsx`};download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');note('현재 그룹의 Excel 파일을 저장했습니다. 브라우저 다운로드 목록에서 열어주세요.');}catch(e){note(e.message,true);}};
 $('save-again').onclick=()=>{if(lastExcel)download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');else note('엑셀을 먼저 저장하세요.');};
-window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.4-browser'};
+window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.5-browser'};
 render();renderFiles();note('준비 완료 · 인터넷 연결 없이 PDF 분석과 Excel 저장을 사용할 수 있습니다.');
