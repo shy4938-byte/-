@@ -1,4 +1,4 @@
-# SpecCompare Windows v1.0.0
+# SpecCompare Windows v1.0.1
 
 MEMORY / SSD / VGA PDF 데이터시트에서 사양 후보와 페이지 근거를 추출하고,
 사용자가 검토·수정한 값을 기존 Excel 비교 양식에 입력하는 오프라인 앱입니다.
@@ -8,11 +8,11 @@ Python, Git, VS Code를 최종 사용자 PC에 설치할 필요가 없습니다.
 
 자동 빌드와 ZIP 압축 해제 후 EXE 검증이 성공해야 배포됩니다.
 실제 게시 위치/해시/Actions 실행 주소는 [배포 안내](downloads/SpecCompare_Windows_README.md)와
-[배포 메타데이터](downloads/SpecCompare_Windows_v1.0.0.json)에 기록됩니다.
+[배포 메타데이터](downloads/SpecCompare_Windows_v1.0.1.json)에 기록됩니다.
 
-- 요청된 Git 경로: https://github.com/shy4938-byte/-/raw/refs/heads/speccompare-download/downloads/SpecCompare_Windows_v1.0.0.zip
+- 요청된 Git 경로: https://github.com/shy4938-byte/-/raw/refs/heads/speccompare-download/downloads/SpecCompare_Windows_v1.0.1.zip
 - GitHub 권장 크기 50 MiB를 넘는 ZIP은 Git 저장소에 추가하지 않고 Releases에 게시합니다.
-- Releases 경로: https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.0.0/SpecCompare_Windows_v1.0.0.zip
+- Releases 경로: https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.0.1/SpecCompare_Windows_v1.0.1.zip
 - [자동 빌드 상태](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
 
 링크의 실제 활성화 여부는 성공한 배포 보고서로 확인하세요. 이전 HTML 앱과 설치 파일은 삭제하지 않습니다.
@@ -21,7 +21,7 @@ Python, Git, VS Code를 최종 사용자 PC에 설치할 필요가 없습니다.
 
 1. 게시된 Windows ZIP을 다운로드하고 **전체 압축 해제**합니다.
 2. `SpecCompare/SpecCompare.exe`를 실행합니다.
-3. MEMORY / SSD / VGA를 선택한 뒤 PDF를 여러 개 추가합니다(드래그 지원).
+3. PDF를 여러 개 추가합니다(드래그 지원). 문서 내용으로 제품군이 명확하면 MEMORY / SSD / VGA를 자동 판별합니다. 판별되지 않는 문서는 선택한 탭을 사용합니다. 서로 다른 제품군은 나누어 분석하세요.
 4. 스펙 분석 후 비교할 모델을 선택합니다.
 5. 셀을 선택해 원문 페이지·근거·규칙 일치도를 확인하고 필요한 값을 수정합니다.
 6. 엑셀 저장으로 새 파일을 저장합니다. 4개를 넘으면 비교 그룹별로 저장합니다.
@@ -87,3 +87,7 @@ Windows 10/11 x64 및 ZIP 전체 압축 해제를 확인하세요. _internal DLL
 
 실제 Windows 10/11 일반 사용자 PC의 설치·보안 정책·Microsoft Excel UI 확인은 자동 러너 테스트와
 다릅니다. 미검증 항목은 downloads/SpecCompare_Windows_BUILD_REPORT.md를 확인하세요.
+
+## v1.0.1 수정
+
+SSD PDF를 MEMORY 기본 탭에서 분석할 때 메모리 표에 표시되던 문제를 수정했습니다. 문서 제품군 자동 판별, 결과 탭 동기화, 혼합 제품군 차단을 추가했습니다.

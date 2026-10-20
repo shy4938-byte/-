@@ -58,12 +58,20 @@ def verify_suite(output_folder):
     def receive_multi(products,errors):results.append((products,errors));loop.quit()
     multi.result.connect(receive_multi);multi.start();timer.start(60000);loop.exec();timer.stop();multi.wait(60000)
     if not results or len(results[0][0])!=2 or results[0][1]:raise RuntimeError('Multiple PDF worker test failed')
+    # Reproduce SSD uploaded while MEMORY remains selected (reported UI bug).
+    window.tabs.setCurrentIndex(0)
+    auto=Worker([str(paths['SSD'])],'MEMORY');auto_results=[];loop=QEventLoop();timer=QTimer();timer.setSingleShot(True);timer.timeout.connect(loop.quit)
+    def receive_auto(products,errors):auto_results.append((products,errors));loop.quit()
+    auto.result.connect(receive_auto);auto.start();timer.start(60000);loop.exec();timer.stop();auto.wait(60000)
+    if not auto_results or auto_results[0][1]:raise RuntimeError('Auto category worker failed')
+    window.analysis_result(*auto_results[0])
+    if window.category!='SSD' or window.products[0].values['순차읽기 속도'].text!='7400 MB/s':raise RuntimeError('SSD displayed as MEMORY')
     bundled=bool(getattr(sys,'frozen',False))
     if bundled:
         root=Path(sys.executable).resolve().parent
         for module_name in ['PySide6','fitz','pdfplumber','openpyxl']:
             module=__import__(module_name);module_path=Path(module.__file__).resolve()
             if not module_path.is_relative_to(root):raise RuntimeError('External dependency: '+module_name)
-    report={'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
+    report={'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','ssd_on_memory_tab':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
     (output/'self-test.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');window.close()
     return report

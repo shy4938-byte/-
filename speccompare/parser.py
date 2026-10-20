@@ -314,13 +314,29 @@ def prose_candidates(doc,category):
     return found
 
 
-def analyze(path,category):
+def document_category(doc):
+    """Require product-specific evidence; DDR/GDDR mentions alone are ambiguous."""
+    front='\n'.join(p.text for p in doc.pages[:3])
+    detected=set()
+    if re.search(r'\bSSD\b|solid[ -]state\s+(?:drive|disk)',front,re.I):
+        detected.add('SSD')
+    if re.search(r'\bDDR\s*[345]\b',front,re.I) and re.search(r'SO[\s-]*DIMM|\b[UR]DIMM\b|Unbuffered\s+DIMM',front,re.I):
+        detected.add('MEMORY')
+    if re.search(r'graphics\s+(?:card|processing\s+unit)|\bGPU\b',front,re.I) and re.search(r'GDDR|VRAM|graphics\s+memory|CUDA|stream\s+processors',front,re.I):
+        detected.add('VGA')
+    return next(iter(detected)) if len(detected)==1 else None
+
+
+def analyze(path,category,auto_detect=False):
     if category not in FIELDS:
         raise AnalysisError('MEMORY / SSD / VGA 제품군을 선택하세요.')
     doc=read_document(path)
-    front='\n'.join(p.text for p in doc.pages[:3])
-    if category!='MEMORY' and re.search(r'DDR\s*[345]',front,re.I) and re.search(r'SO[\s-]*DIMM|UDIMM|Unbuffered\s+DIMM',front,re.I):
-        raise AnalysisError('메모리 데이터시트입니다. MEMORY 탭에서 다시 분석하세요.')
+    detected=document_category(doc)
+    if detected and detected!=category:
+        if auto_detect:
+            category=detected
+        else:
+            raise AnalysisError(f'{detected} 데이터시트입니다. {detected} 탭에서 다시 분석하세요.')
     products=catalogue(doc,category) or header_products(doc,category)
     candidates=prose_candidates(doc,category)
     if not products:

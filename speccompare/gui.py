@@ -19,17 +19,20 @@ class Worker(QThread):
         products, errors = [], []
         for i,path in enumerate(self.paths):
             try:
-                result=analyze(path,self.category)
-                usable=[p for p in result if any(p.values[k].text!='확인 필요' for k in FIELDS[self.category])]
+                result=analyze(path,self.category,auto_detect=True)
+                usable=[p for p in result if any(p.values[k].text!='확인 필요' for k in FIELDS[p.category])]
                 if not usable: raise ValueError('모델별 사양을 식별하지 못했습니다. 원문 검토가 필요합니다.')
                 products.extend(usable)
             except Exception as exc: errors.append(f'{Path(path).name}: {exc}')
             self.progress.emit(int((i+1)/len(self.paths)*100))
+        if len({p.category for p in products})>1:
+            products=[]
+            errors.append('서로 다른 제품군의 PDF가 섞여 있습니다. MEMORY / SSD / VGA별로 나누어 분석하세요.')
         self.result.emit(products,errors)
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle('SpecCompare 1.0.0'); self.resize(1150,800)
+        super().__init__(); self.setWindowTitle('SpecCompare 1.0.1'); self.resize(1150,800)
         self.setWindowIcon(QIcon(str(ROOT/'assets/icon.ico')))
         self.products=[]; self.saved=None; self.worker=None; self.refreshing=False
         self.setAcceptDrops(True)
@@ -82,6 +85,14 @@ class Window(QMainWindow):
         for b in self.actions: b.setEnabled(True)
     def analysis_result(self,products,errors):
         products=[p for p in products if any(p.values[k].text!='확인 필요' for k in FIELDS[p.category])]
+        categories={p.category for p in products}
+        if len(categories)>1:
+            self.products=[]; self.rebuild_groups()
+            return self.message('서로 다른 제품군은 함께 비교할 수 없습니다. 제품군별로 나누어 분석하세요.')
+        if categories:
+            category=next(iter(categories))
+            if category!=self.category:
+                self.tabs.setCurrentIndex(list(FIELDS).index(category))
         selected=[]
         for source in dict.fromkeys(p.source for p in products):
             candidates=[p for p in products if p.source==source]

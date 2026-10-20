@@ -48,3 +48,40 @@ class Gui(unittest.TestCase):
         self.assertEqual(len(window.products),2)
         self.assertTrue(window.table.item(0,1).textAlignment() & Qt.AlignmentFlag.AlignHCenter)
         window.close()
+
+    def test_ssd_uploaded_on_memory_tab_switches_result_and_export(self):
+        from unittest.mock import patch
+        from speccompare.fixtures import create_fixtures
+        import time
+        with tempfile.TemporaryDirectory() as directory:
+            paths=create_fixtures(Path(directory)/'샘플')
+            window=Window(); window.add_paths([str(paths['SSD'])])
+            self.assertEqual(window.category,'MEMORY')
+            window.run_analysis()
+            deadline=time.monotonic()+20
+            while (window.worker.isRunning() or not window.products) and time.monotonic()<deadline:
+                app.processEvents();time.sleep(.01)
+            window.worker.wait(20000);app.processEvents()
+            self.assertEqual(window.category,'SSD')
+            self.assertEqual(window.products[0].category,'SSD')
+            keys=[window.table.item(r,0).text() for r in range(window.table.rowCount())]
+            self.assertIn('순차읽기 속도',keys);self.assertNotIn('메모리 규격',keys)
+            self.assertEqual(window.products[0].values['순차읽기 속도'].text,'7400 MB/s')
+            destination=Path(directory)/'SSD 저장.xlsx'
+            with patch('speccompare.gui.QFileDialog.getSaveFileName',return_value=(str(destination),'')), patch.object(window,'message'):
+                window.save()
+            wb=load_workbook(destination);self.assertEqual(wb['SSD']['C5'].value,window.products[0].values['제조사'].text);wb.close()
+            window.tabs.setCurrentIndex(0);self.assertEqual(window.products,[])
+            window.close()
+
+    def test_mixed_categories_rejected_by_worker(self):
+        from speccompare.fixtures import create_fixtures
+        import time
+        with tempfile.TemporaryDirectory() as directory:
+            paths=create_fixtures(Path(directory))
+            worker=Worker([str(paths['SSD']),str(paths['MEMORY'])],'MEMORY')
+            spy=QSignalSpy(worker.result);worker.start();deadline=time.monotonic()+20
+            while not spy.count() and time.monotonic()<deadline:
+                app.processEvents();time.sleep(.01)
+            worker.wait(20000)
+            products,errors=spy.at(0);self.assertEqual(products,[]);self.assertIn('제품군',errors[-1])

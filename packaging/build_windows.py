@@ -11,7 +11,7 @@ import sys
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='1.0.0'
+VERSION='1.0.1'
 def run(command,**kwargs):
     subprocess.run([str(v) for v in command],check=True,**kwargs)
 

@@ -6,8 +6,9 @@ from speccompare.parser import analyze
 class RealDocuments(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('SPECCOMPARE_PM9A1_PDF'),'Real PM9A1 PDF not supplied')
     def test_pm9a1(self):
-        products=analyze(os.environ['SPECCOMPARE_PM9A1_PDF'],'SSD')
+        products=analyze(os.environ['SPECCOMPARE_PM9A1_PDF'],'MEMORY',auto_detect=True)
         self.assertEqual(len(products),4)
+        self.assertTrue(all(p.category=='SSD' for p in products))
         for i,p in enumerate(products):
             self.assertEqual(p.name,'Samsung PM9A1 '+['256GB','512GB','1024GB','2048GB'][i])
             self.assertEqual(p.values['순차읽기 속도'].text,['6,400 MB/s','6,900 MB/s','7,000 MB/s','7,000 MB/s'][i])
