@@ -53,28 +53,64 @@ function parsePages(pages,source,category){
    const header=page.rows[h],caps=header.items.filter(i=>capacity(i.text));
    if(caps.length<2||!header.items.some(i=>/^parameter$/i.test(i.text)))continue;
    const centers=caps.map(i=>i.center),left=centers[0]-(centers[1]-centers[0])/2;
-   for(const row of page.rows.slice(h+1,h+12)){
-    if(/NOTE:|\[Table /i.test(row.text))break;
+   const body=[];
+   for(const row of page.rows.slice(h+1)){
+    if(/NOTE\s*:|\[Table /i.test(row.text)||header.y-row.y>240)break;
+    body.push(row);
+   }
+   const markers=[];
+   for(const row of body){
     const label=row.items.filter(i=>i.center<left).map(i=>i.text).join(' ');
-    const key=keys.find(k=>[k,...(ALIASES[k]||[])].some(a=>normalize(label).startsWith(normalize(a)+' ')||normalize(label)===normalize(a)));
-    if(!key)continue;
-    const unit=row.items.find(i=>i.center<left&&/^(MB\/s|GB\/s|IOPS|TB)$/i.test(i.text))?.text||'';
-    for(let c=0;c<caps.length;c++){
-     const value=cellAt({items:row.items.filter(i=>i.center>=left)},centers,c);
-     if(!value)continue;
-     for(const p of products.values())if(normalize(p.values['용량'].text)===normalize(caps[c].text))assign(p,key,`${value} ${unit}`.trim(),page.number,header.text+'\n'+row.text);
+    const matched=keys.filter(k=>[k,...(ALIASES[k]||[])].some(a=>normalize(label).startsWith(normalize(a)+' ')||normalize(label)===normalize(a)));
+    if(matched.length)markers.push({row,keys:matched});
+   }
+   const unitHeader=header.items.find(i=>/^unit$/i.test(i.text));
+   const numeric=text=>text.replace(/(?:^|\s)\d+\)/g,'').replace(/\s*\/\s*/g,' / ').trim();
+   for(let mi=0;mi<markers.length;mi++){
+    const marker=markers[mi],top=marker.row.y+7,bottom=markers[mi+1]?markers[mi+1].row.y+7:-Infinity;
+    const band=body.filter(r=>r.y<=top&&r.y>bottom),records=[];
+    for(const row of band){
+     const values=caps.map((_,c)=>numeric(cellAt({items:row.items.filter(i=>i.center>=left)},centers,c)));
+     if(!values.every(v=>/^\d[\d,.]*K?(?:\s*\/\s*\d[\d,.]*K?)?$/i.test(v)))continue;
+     let unit=row.items.find(i=>i.center<left&&/^(?:MB\/s|GB\/s|IOPS|TB)(?:\d+\))?$/i.test(i.text));
+     if(!unit)unit=band.flatMap(r=>r.items.map(i=>({...i,y:r.y}))).find(i=>i.center<left&&Math.abs(i.y-row.y)<6&&/^(?:MB\/s|GB\/s|IOPS|TB)$/i.test(i.text));
+     if(!unit)continue;
+     const qdItem=row.items.find(i=>i.center<left&&(!unitHeader||i.center>unitHeader.center+15)&&/^\d+$|^QD\s*=\s*\d+$/i.test(i.text));
+     const qd=qdItem?Number(qdItem.text.match(/\d+/)[0]):null;
+     records.push({values,unit:unit.text.replace(/\d+\)$/,''),qd,row});
+    }
+    if(!records.length)continue;
+    const main=[...records].sort((a,b)=>(b.qd||0)-(a.qd||0))[0];
+    for(let c=0;c<caps.length;c++)for(const p of products.values()){
+     if(normalize(p.values['용량'].text)!==normalize(caps[c].text))continue;
+     for(const key of marker.keys){
+      const conditioned=records.length>1||main.values[c].includes('/');
+      const text=`${main.values[c]} ${main.unit}${conditioned&&main.qd?' (QD'+main.qd+')':''}`;
+      const evidence=header.text+'\n'+marker.row.text+'\n'+band.map(r=>r.text).join('\n');
+      assign(p,key,text,page.number,evidence);
+      if(main.qd)assign(p,`${key} · 측정 QD`,'QD'+main.qd,page.number,evidence);
+      if(conditioned){
+       for(const record of records)assign(p,`${key} · ${record.qd?'QD'+record.qd:'측정값'}`,`${record.values[c]} ${record.unit}`,page.number,evidence);
+       if(main.values[c].includes('/')){
+        const seq=/순차/.test(key)&&/Performance without TurboWrite technology/i.test(page.text);
+        assign(p,`${key} · 병기값 설명`,seq?'두 번째 값: TurboWrite 미적용 (주석 5)':'슬래시 양쪽 값을 원문 그대로 보존. 추가 측정 조건은 원문 검토 필요',page.number,evidence+'\n'+page.rows.filter(r=>/Performance without TurboWrite technology/i.test(r.text)).map(r=>r.text).join('\n'));
+       }
+      }
+     }
     }
    }
   }
+
   for(const p of products.values())for(const page of pages){
    if(!/Drive Configuration/.test(page.text)||!/Features/.test(page.text))continue;
    if(/SAMSUNG/i.test(pages[0].text))assign(p,'제조사','Samsung',1,pages[0].rows.find(r=>/SAMSUNG/i.test(r.text))?.text||'');
-   for(const [key,re] of Object.entries({'인터페이스':/PCI Express\s*[®™]*\s+Gen\.\d+\s+x\d+/i,'PCIe 세대':/PCIe\s*[®™]*\s+Gen\.\d+/i,'NVMe':/NVM Express[^\n]*?Rev\.\s*[\d.]+[a-z]?/i})){
+   for(const [key,re] of Object.entries({'인터페이스':/PCI Express\s*[®™]*\s+Gen\.?\s*\d+\s+x\d+/i,'PCIe 세대':/PCIe\s*[®™]*\s+Gen\.?\s*\d+/i,'NVMe':/(?:NVM|NVMe) Express[^\n]*?Rev\.\s*[\d.]+[a-z]?/i})){
     const m=page.text.match(re);if(m)assign(p,key,m[0],page.number,m[0]);
    }
   }
   // A cover title identifies the shared product family; catalogue codes remain part numbers.
   const cover=pages[0],titles=[...cover.text.matchAll(/\bSAMSUNG\s+SSD\s+([A-Z][A-Z0-9-]*)\b/gi)];
+  if(/SAMSUNG/i.test(cover.text))for(const row of cover.rows){const m=row.text.match(/^\(\s*(PM[A-Z0-9-]+)\s*\)$/i);if(m)titles.push(m);}
   const families=new Set(titles.map(m=>m[1].toUpperCase()));
   if(families.size===1&&[...products.values()].every(p=>cover.text.includes(p.values['모델명'].text))){
    const title=titles[0],family=title[1].toUpperCase();
@@ -167,10 +203,10 @@ async function chooseModels(candidates){if(candidates.length<2)return candidates
 $('pdf-input').onchange=e=>{addFiles(e.target.files);e.target.value='';};$('add').onclick=()=>$('pdf-input').click();$('clear-files').onclick=()=>{files=[];renderFiles();};
 $('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('drag');};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');addFiles(e.dataTransfer.files);};
 for(const button of document.querySelectorAll('[data-category]'))button.onclick=()=>{if(busy)return;if(products.length&&!confirm('제품군을 변경하면 현재 분석 결과가 초기화됩니다. 계속할까요?'))return;category=button.dataset.category;products=[];group=0;selected=null;for(const b of document.querySelectorAll('[data-category]'))b.classList.toggle('active',b===button);$('evidence').textContent='값을 클릭하면 PDF 페이지와 추출 근거를 확인할 수 있습니다.';render();};
-$('analyze').onclick=async()=>{if(!files.length)return note('PDF를 먼저 추가하세요.',true);setBusy(true);const all=[],errors=[];try{for(let i=0;i<files.length;i++){note(`${files[i].name} 분석 중…`);try{const results=await analyze(files[i],category,ratio=>{$('progress').value=(i+ratio)/files.length*100;});all.push(...await chooseModels(results));}catch(e){errors.push(`${files[i].name}: ${e.message}`);}}products=all;group=0;selected=null;render();note(`${all.length}개 제품 분석 완료. 자동 추출값은 원문 검토가 필요합니다.${errors.length?'\n'+errors.join('\n'):''}`,!!errors.length);}finally{setBusy(false);}};
+$('analyze').onclick=async()=>{if(!files.length)return note('PDF를 먼저 추가하세요.',true);setBusy(true);const all=[],errors=[];try{for(let i=0;i<files.length;i++){note(`${files[i].name} 분석 중…`);try{const results=await analyze(files[i],category,ratio=>{$('progress').value=(i+ratio)/files.length*100;});const usable=results.filter(p=>FIELDS[category].some(k=>p.values[k].text!=='확인 필요'));if(!usable.length)throw Error('제품 사양을 식별하지 못했습니다. 빈 제품을 비교표에 추가하지 않았습니다.');all.push(...await chooseModels(usable));}catch(e){errors.push(`${files[i].name}: ${e.message}`);}}products=all;group=0;selected=null;render();note(`${all.length}개 제품 분석 완료. 자동 추출값은 원문 검토가 필요합니다.${errors.length?'\n'+errors.join('\n'):''}`,!!errors.length);}finally{setBusy(false);}};
 $('reset').onclick=()=>{if(products.length&&!confirm('분석 결과와 수동 수정값을 초기화할까요?'))return;products=[];group=0;selected=null;$('progress').value=0;render();};
 $('confirm').onclick=()=>{if(!selected)return note('확인할 셀을 먼저 클릭하세요.');const v=selected.p.values[selected.key];if(!v.text.trim()||v.text==='확인 필요')return note('값을 입력한 뒤 확인하세요.');v.status='확인 완료';showEvidence(selected.p,selected.key);render();};
 $('save').onclick=()=>{try{lastExcel={bytes:excelBytes(category,visible()),name:`${category}_SpecCompare_${new Date().toLocaleDateString('sv-SE').replaceAll('-','')}.xlsx`};download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');note('현재 그룹의 Excel 파일을 저장했습니다. 브라우저 다운로드 목록에서 열어주세요.');}catch(e){note(e.message,true);}};
 $('save-again').onclick=()=>{if(lastExcel)download(lastExcel.bytes,lastExcel.name,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');else note('엑셀을 먼저 저장하세요.');};
-window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.1-browser'};
+window.SpecCompare={analyze,parsePages,excelBytes,FIELDS,loadProducts(p,c='SSD'){category=c;products=p;group=0;render();},getProducts:()=>products,version:'1.1.2-browser'};
 render();renderFiles();note('준비 완료 · 인터넷 연결 없이 PDF 분석과 Excel 저장을 사용할 수 있습니다.');
