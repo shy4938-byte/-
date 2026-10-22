@@ -1,8 +1,9 @@
-SpecCompare Windows v1.1.1 (64-bit)
+SpecCompare Windows v1.1.2 (64-bit)
 
 1. ZIP 전체 압축 해제 → SpecCompare.exe 실행. Python/Git 설치 불필요.
-2. AI 연결 설정에서 로컬 Ollama 설치·실행 및 qwen2.5vl:7b 모델 다운로드.
-   또는 온라인 OpenAI API 모델·키 입력 및 PDF 글자/이미지 전송 동의.
+2. AI 연결 설정에서 온라인 OpenAI API 모델·키 입력 및 PDF 글자/이미지 전송 동의.
+   ChatGPT 구독과 API 이용 요금은 별도입니다. 키는 앱에서 입력하세요.
+   로컬 Ollama 비전 모델은 선택 기능입니다.
 3. PDF 추가 → AI 문서 해석 → 스펙 분석 → 모델 선택.
 4. 원문 페이지/인용/모델 연결/측정 조건 확인 후 수정.
 5. Excel 저장: 원본 비교 양식 + _분석근거.xlsx(공통 최대값·근거) 저장.

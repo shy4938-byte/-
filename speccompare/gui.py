@@ -36,7 +36,7 @@ class Worker(QThread):
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle('SpecCompare 1.1.1'); self.resize(1150,800)
+        super().__init__(); self.setWindowTitle('SpecCompare 1.1.2'); self.resize(1150,800)
         self.setWindowIcon(QIcon(str(ROOT/'assets/icon.ico')))
         self.products=[]; self.saved=None; self.worker=None; self.refreshing=False
         from .ai_settings import load_config
@@ -51,7 +51,7 @@ class Window(QMainWindow):
         mode_row=QHBoxLayout();layout.addLayout(mode_row)
         self.mode=QComboBox();self.mode.addItem('AI 문서 해석 · 다양한 양식',True);self.mode.addItem('빠른 추출 · 기존 규칙 / AI 없이',False);mode_row.addWidget(self.mode)
         self.ai_button=QPushButton('AI 연결 설정');self.ai_button.clicked.connect(self.ai_settings);mode_row.addWidget(self.ai_button)
-        self.stage_label=QLabel('AI 모드는 최초 연결 설정이 필요합니다. 로컬 AI는 PDF를 외부로 전송하지 않습니다.');self.stage_label.setWordWrap(True);layout.addWidget(self.stage_label)
+        self.stage_label=QLabel('온라인 AI를 기본으로 사용합니다. AI 연결 설정에서 API 키·PDF 전송 동의를 입력하세요. 키는 이번 실행에서만 사용합니다.');self.stage_label.setWordWrap(True);layout.addWidget(self.stage_label)
         self.files=QListWidget(); self.files.setMaximumHeight(130); self.files.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection); layout.addWidget(self.files)
         row=QHBoxLayout(); layout.addLayout(row)
         self.actions=[]

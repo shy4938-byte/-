@@ -1,4 +1,4 @@
-# SpecCompare Windows v1.1.1
+# SpecCompare Windows v1.1.2
 
 다양한 PDF 양식을 글자·표·페이지 이미지로 해석하는 AI 분석 모드와 내장 OCR을 추가했습니다.
 기존 규칙 추출도 별도 모드로 유지합니다. Python, Git, VS Code 설치는 필요하지 않습니다.
@@ -7,14 +7,24 @@
 
 [최신 배포 안내](downloads/SpecCompare_Windows_README.md) · [빌드 결과](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
 
-성공한 배포의 실제 URL·해시는 downloads/SpecCompare_Windows_v1.1.1.json에 기록됩니다.
+성공한 배포의 실제 URL·해시는 downloads/SpecCompare_Windows_v1.1.2.json에 기록됩니다.
 50 MiB를 넘는 ZIP은 GitHub Releases에 게시합니다. 이전 배포 및 다른 앱은 보존합니다.
 
-## 처음 실행: AI 연결을 한 번 설정하세요
+## 처음 실행: 온라인 AI 설정
+
+기본은 온라인 OpenAI API입니다. AI 연결 설정 → 본인의 API 키 입력 → PDF 전송 동의 → 설정 적용 후 분석하세요. ChatGPT 구독과 API 요금은 별도입니다. API 키는 채팅으로 보내지 말고 앱에 입력하세요.
 
 AI 모델 자체는 ZIP에 포함하지 않습니다. OCR 언어 데이터와 앱 실행 라이브러리는 포함합니다.
 
-### 로컬 AI (기본)
+### 온라인 AI (기본)
+
+AI 연결 설정에서 OpenAI API 선택 → 이미지/구조화 출력을 지원하는 모델(기본 gpt-4.1-mini)과 본인의 API 키 입력 → 전송 동의 → 설정 적용.
+선택 PDF의 추출 글자 및 페이지 이미지가 OpenAI로 전송되고 API 요금이 발생할 수 있습니다.
+앱은 Responses API에 store=false를 지정하지만 제공자의 별도 보관 정책을 대체하지 않습니다.
+API 키는 이번 앱 실행의 메모리에만 보관하고 설정 파일·로그에 저장하지 않습니다. 다음 실행에는 다시 입력해야 합니다.
+
+
+### 로컬 AI (선택)
 
 1. ZIP 전체 압축 해제 후 SpecCompare/SpecCompare.exe 실행.
 2. AI 연결 설정 → Ollama 설치 페이지에서 Windows용 Ollama를 설치하고 실행.
@@ -24,13 +34,6 @@ AI 모델 자체는 ZIP에 포함하지 않습니다. OCR 언어 데이터와 �
 최초 수 GB 모델 다운로드에 인터넷·디스크 공간이 필요합니다. 이후 로컬 분석은 PDF를 외부로 전송하지 않습니다.
 RAM 약 16GB 이상을 권장하며 GPU/PC 성능·문서 길이에 따라 시간이 크게 달라집니다.
 연결 주소는 이 PC의 loopback HTTP만 허용합니다. Ollama의 이미지+JSON 지원 비전 모델이 필요합니다.
-
-### 온라인 AI (선택)
-
-AI 연결 설정에서 OpenAI API 선택 → 이미지/구조화 출력을 지원하는 모델(기본 gpt-4.1-mini)과 본인의 API 키 입력 → 전송 동의 → 설정 적용.
-선택 PDF의 추출 글자 및 페이지 이미지가 OpenAI로 전송되고 API 요금이 발생할 수 있습니다.
-앱은 Responses API에 store=false를 지정하지만 제공자의 별도 보관 정책을 대체하지 않습니다.
-API 키는 이번 앱 실행의 메모리에만 보관하고 설정 파일·로그에 저장하지 않습니다. 다음 실행에는 다시 입력해야 합니다.
 
 ## 결과 확인·Excel 저장
 

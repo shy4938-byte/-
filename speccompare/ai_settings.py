@@ -39,7 +39,7 @@ class AISettingsDialog(QDialog):
         self.model=QLineEdit(config.model);form.addRow('모델 이름',self.model)
         self.key=QLineEdit(config.api_key);self.key.setEchoMode(QLineEdit.EchoMode.Password);self.key.setPlaceholderText('API 키는 이번 실행에서만 사용하며 파일에 저장하지 않습니다.');form.addRow('온라인 API 키',self.key)
         self.consent=QCheckBox('온라인 AI 사용 시 선택 PDF의 글자·페이지 이미지를 OpenAI로 전송하는 데 동의합니다. 이용 요금이 발생할 수 있습니다.');self.consent.setChecked(config.online_consent);box.addWidget(self.consent)
-        self.status=QLabel('로컬 AI는 처음 한 번 Ollama 설치와 비전 모델 다운로드가 필요합니다.\n권장 시작 모델: qwen2.5vl:7b. RAM 약 16GB 이상을 권장하며 CPU에서는 느릴 수 있습니다.');self.status.setWordWrap(True);box.addWidget(self.status)
+        self.status=QLabel('온라인 AI는 본인의 API 키와 별도 API 이용 요금이 필요합니다. ChatGPT 구독과는 별도입니다.\n로컬 AI는 선택 기능이며 Ollama 설치·모델 다운로드가 필요합니다.');self.status.setWordWrap(True);box.addWidget(self.status)
         row=QHBoxLayout();box.addLayout(row)
         self.install=QPushButton('Ollama 설치 페이지');self.install.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://ollama.com/download/windows')));row.addWidget(self.install)
         self.check=QPushButton('연결 확인');self.check.clicked.connect(lambda:self.run_task(False));row.addWidget(self.check)
@@ -79,5 +79,5 @@ class AISettingsDialog(QDialog):
 
 
 def load_config():
-    settings=QSettings('SpecCompare','SpecCompare');default=AIConfig()
+    settings=QSettings('SpecCompare','SpecCompare');default=AIConfig(provider='openai',model='gpt-4.1-mini')
     return AIConfig(**{k:str(settings.value('ai/'+k,getattr(default,k))) for k in ['provider','model','endpoint']})
