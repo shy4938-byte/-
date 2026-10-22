@@ -25,3 +25,26 @@ class RealDocuments(unittest.TestCase):
         products=analyze(os.environ['SPECCOMPARE_SAMSUNG_DDR5_PDF'],'MEMORY');self.assertEqual(len(products),2)
         for i,p in enumerate(products):
             self.assertEqual(p.values['용량'].text,['16GB','32GB'][i]);self.assertEqual(p.values['동작속도'].text,'5600 MT/s');self.assertEqual(p.values['지연시간'].text,'CL46');self.assertEqual(p.values['Rank'].text,['1 Rank','2 Rank'][i]);self.assertIn('WM',p.values['동작속도'].evidence)
+
+    @unittest.skipUnless(os.environ.get('SPECCOMPARE_990PRO_PDF'),'Real 990 PRO PDF not supplied')
+    def test_990pro(self):
+        products=analyze(os.environ['SPECCOMPARE_990PRO_PDF'],'SSD')
+        self.assertEqual(len(products),2)
+        for i,p in enumerate(products,1):
+            self.assertEqual(p.name,f'Samsung 990 PRO {i}TB')
+            self.assertEqual(p.values['부품번호'].text,f'MZ-V9P{i}T0')
+            self.assertEqual(p.values['판매 코드'].text,f'MZ-V9P{i}T0BW\nMZ-V9P{i}T0B/AM')
+            self.assertEqual(p.values['순차읽기 속도'].text,'7,450 MB/s')
+            self.assertEqual(p.values['순차쓰기 속도'].text,'6,900 MB/s')
+            self.assertEqual(p.values['랜덤읽기 속도'].text,['1,200K IOPS','1400K IOPS'][i-1])
+            self.assertEqual(p.values['랜덤쓰기 속도'].text,'1,550K IOPS')
+            self.assertEqual(p.values['내구성'].text,['600 TB','1,200 TB'][i-1])
+            self.assertEqual(p.values['DRAM'].text,f'{i}GB LPDDR4')
+            self.assertEqual(p.values['인터페이스'].text,'PCIe Gen 4.0 x4, NVMe 2.0')
+            self.assertEqual(p.values['랜덤읽기 속도 · QD1'].text,'22K IOPS')
+            self.assertEqual(p.values['랜덤쓰기 속도 · QD1'].text,'80K IOPS')
+            self.assertIn('Thread 16',p.values['랜덤읽기 속도'].evidence)
+            for key in ['순차읽기 속도','순차쓰기 속도','랜덤읽기 속도','랜덤쓰기 속도','내구성']:
+                self.assertEqual(p.values[key].page,3)
+                self.assertTrue(p.values[key].evidence)
+            self.assertEqual(p.values['가격'].text,'확인 필요')

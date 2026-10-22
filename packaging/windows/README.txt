@@ -1,4 +1,4 @@
-SpecCompare Windows v1.0.1 (64-bit)
+SpecCompare Windows v1.0.2 (64-bit)
 
 1. ZIP 전체를 압축 해제하세요. ZIP 내부에서 실행하지 마세요.
 2. SpecCompare 폴더의 SpecCompare.exe를 더블클릭하세요.

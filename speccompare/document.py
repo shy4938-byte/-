@@ -97,7 +97,9 @@ def read_document(path):
     except Exception as exc:
         raise AnalysisError(f'PDF 읽기 실패: {exc}') from exc
     document=Document(str(path),pages,tables,warnings)
+    tables.extend(split_catalogues(document))
     tables.extend(geometric_catalogues(document))
+    tables.extend(capacity_matrices(document))
     return document
 
 
@@ -109,6 +111,7 @@ def geometric_catalogues(document):
     for page in document.pages:
         for hi,header in enumerate(page.lines):
             label=header.text
+            if re.search(r'model\s+name',label,re.I) and re.search(r'model\s+code',label,re.I):continue
             mm,cm=model_re.search(label),capacity_re.search(label)
             if not mm or not cm:
                 continue
@@ -142,4 +145,74 @@ def geometric_catalogues(document):
                     previous_y=line.y
             if len(rows)>1:
                 result.append(Table(page.number,rows,'unruled catalogue'))
+    return result
+
+
+def split_catalogues(document):
+    """Separate SKU and packaging columns, including vertically merged rows."""
+    result=[]
+    for page in document.pages:
+        for hi,header in enumerate(page.lines):
+            patterns=[r'capacity|density',r'model\s+name',r'box\s+contents',r'model\s+code']
+            matches=[re.search(p,header.text,re.I) for p in patterns]
+            if not all(matches):continue
+            spans=[];cursor=0
+            for w in header.words:
+                spans.append((cursor,cursor+len(w.text),w));cursor+=len(w.text)+1
+            anchors=[]
+            for m in matches:
+                ws=[w for a,b,w in spans if a<m.end() and b>m.start()]
+                anchors.append((min(w.x0 for w in ws)+max(w.x1 for w in ws))/2)
+            order=sorted(range(4),key=lambda i:anchors[i]);edges=[(anchors[a]+anchors[b])/2 for a,b in zip(order,order[1:])]
+            rows=[['Part Number','Capacity','Model Code']];record=None
+            def flush():
+                if record and len(record['models'])==1:
+                    rows.append([next(iter(record['models'])),record['cap'],'\n'.join(record['codes'])])
+            for line in page.lines[hi+1:]:
+                if line.y-header.y>200 or re.match(r'\*|For more|TEST CONFIGURATION',line.text,re.I):break
+                cells=['']*4
+                for w in line.words:
+                    col=sum(w.center>e for e in edges);cells[order[col]]+=' '+w.text
+                cells=[v.strip() for v in cells]
+                cap=re.fullmatch(r'\d+(?:\.\d+)?\s*(?:GB|TB)',cells[0])
+                if cap:
+                    flush();record={'cap':cap[0],'models':set(),'codes':[]}
+                if record:
+                    if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9./$-]*',cells[1]):record['models'].add(cells[1])
+                    if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9./$-]*',cells[3]) and cells[3] not in record['codes']:record['codes'].append(cells[3])
+            flush()
+            if len(rows)>1:result.append(Table(page.number,rows,'split catalogue columns'))
+    return result
+
+
+def capacity_matrices(document):
+    """Recover open-ended capacity columns from text positions, not ruled edges."""
+    result=[]
+    for page in document.pages:
+        for hi,header in enumerate(page.lines):
+            if not re.search(r'capacity\s*(?:\d+\))?\s',header.text,re.I):continue
+            caps=[w for w in header.words if re.fullmatch(r'\d+(?:\.\d+)?(?:GB|TB)',w.text)]
+            if len(caps)<2:continue
+            labels=[w for w in header.words if w.x1<caps[0].x0]
+            if not labels:continue
+            left=(max(w.x1 for w in labels)+caps[0].center)/2
+            edges=[left]+[(a.center+b.center)/2 for a,b in zip(caps,caps[1:])]
+            rows=[['Metric','Queue Depth','Thread']+[w.text for w in caps]]
+            qd=thread=''
+            for line in page.lines[hi+1:]:
+                if re.match(r'\d+\)\s|Revision\b',line.text,re.I):break
+                label=' '.join(w.text for w in line.words if w.center<left)
+                q=re.search(r'\bQD\s*(\d+)',label,re.I);t=re.search(r'\bThread\s*(\d+)',label,re.I)
+                if q:qd=q[1];thread=''
+                if t:thread=t[1]
+                cells=['']*len(caps)
+                for w in line.words:
+                    if w.center>=left:cells[sum(w.center>e for e in edges)-1]+=' '+w.text
+                if any(cells):rows.append([label,qd,thread]+[v.strip() for v in cells])
+            # QD and Thread labels may occupy different baselines of a merged cell.
+            for row in rows[1:]:
+                if row[1] and not row[2] and re.search(r'ran\.?\s+(read|write)',row[0],re.I):
+                    threads={r[2] for r in rows[1:] if r[1]==row[1] and r[2] and re.search(r'ran\.?\s+(read|write)',r[0],re.I)}
+                    if len(threads)==1:row[2]=next(iter(threads))
+            if len(rows)>1:result.append(Table(page.number,rows,'capacity coordinates'))
     return result

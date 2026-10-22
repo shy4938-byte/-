@@ -106,7 +106,8 @@ def catalogue(doc,category):
                     for ci,label in enumerate(header):
                         if ci in [mc,cc,rc] or ci>=len(row) or not row[ci]:
                             continue
-                        for key in matching(label,category):
+                        keys=['판매 코드'] if clean(label)=='model code' else matching(label,category)
+                        for key in keys:
                             assign(p,key,cell_value(label,row[ci]),table.page,evidence(table,header,row),.99)
                     if rc is not None and rc<len(row) and re.fullmatch(r'[1-8]',str(row[rc] or '').strip()):
                         assign(p,'Rank',str(row[rc]).strip()+' Rank',table.page,evidence(table,header,row),.99)
@@ -145,7 +146,7 @@ def magnitude(value):
 
 
 def performance_tables(doc,products):
-    for table in doc.tables:
+    for table in sorted(doc.tables,key=lambda t:t.method=='capacity coordinates'):
         for hi,header in enumerate(table.rows[:5]):
             cols={i:capacity(v) for i,v in enumerate(header) if capacity(v)}
             if not cols:
@@ -156,7 +157,10 @@ def performance_tables(doc,products):
             for row in table.rows[hi+1:]:
                 if not row:
                     continue
-                keys=[k for k in PERFORMANCE+['내구성','TBW'] if alias_match(row[0],k)]
+                label=str(row[0] or '')
+                metric=re.search(r'(sequential|seq\.?|random|ran\.?)\s+(read|write)\s*$',label,re.I)
+                normalized=(('Sequential' if metric[1].lower().startswith('seq') else 'Random')+' '+metric[2]) if metric else label
+                keys=[k for k in PERFORMANCE+['내구성','TBW'] if alias_match(normalized,k)]
                 if keys:
                     previous=keys
                 elif row[0] in [None,'']:
@@ -169,6 +173,9 @@ def performance_tables(doc,products):
                 qd=None
                 if qc is not None and qc<len(row):
                     q=re.search(r'\d+',str(row[qc] or ''));qd=int(q[0]) if q else None
+                if not any(k.startswith('랜덤') for k in keys):qd=None
+                tc=next((i for i,v in enumerate(header) if clean(v)=='thread'),None)
+                thread=str(row[tc] or '') if tc is not None and tc<len(row) else ''
                 for ci,cap in cols.items():
                     if ci>=len(row) or not row[ci]:
                         continue
@@ -187,10 +194,10 @@ def performance_tables(doc,products):
                             p.warnings.append(f'p.{table.page}: 동일 용량의 여러 모델에 성능을 배정하지 않았습니다.')
                         continue
                     for key in keys:
-                        groups[(id(matches[0]),key)].append((matches[0],qd,parts,unit,evidence(table,header,row)))
+                        groups[(id(matches[0]),key)].append((matches[0],qd,parts,unit,evidence(table,header,row)+(f'\nThread {thread}' if thread else '')))
             for (_,key),records in groups.items():
                 p,qd,parts,unit,proof=max(records,key=lambda r:r[1] or 0)
-                assign(p,key,max(parts,key=magnitude)+' '+unit,table.page,proof,.99)
+                assign(p,key,max(parts,key=magnitude)+' '+unit,table.page,proof,1.0 if table.method=='capacity coordinates' else .99)
                 if qd:
                     assign(p,key+' · 측정 QD','QD'+str(qd),table.page,proof,.99)
                 for _,rq,rp,ru,revidence in records:
@@ -216,9 +223,9 @@ def shared_features(doc,products,category):
         if not re.search(r'features|drive configuration|general specification|technical specification',page.text,re.I):
             continue
         patterns={
-            '인터페이스':r'PCI Express\s*[®™]*\s+Gen\.?\s*\d+\s*x\d+',
-            'PCIe 세대':r'PCIe\s*[®™]*\s*Gen\.?\s*\d+',
-            'NVMe':r'(?:NVM|NVMe) Express[^\n]*?Rev\.\s*[\d.]+[a-z]?',
+            '인터페이스':r'(?:PCI Express|PCIe)\s*[®™]*\s+Gen\.?\s*\d+(?:\.\d+)?\s*x\d+(?:,\s*NVMe\s*[\d.]+)?',
+            'PCIe 세대':r'PCIe\s*[®™]*\s*Gen\.?\s*\d+(?:\.\d+)?',
+            'NVMe':r'(?:NVM|NVMe) Express[^\n]*?Rev\.\s*[\d.]+[a-z]?|NVMe\s+\d+(?:\.\d+)+',
         }
         for key,pattern in patterns.items():
             if key not in FIELDS[category]+EXTRAS[category]:
@@ -239,6 +246,16 @@ def shared_features(doc,products,category):
             p.values['제품군 모델명']=Value(family,1,titles[0][0],'검토 필요',.99)
             cap=p.values['용량'].text
             p.values['모델명']=Value(f'Samsung {family} {cap}',1,titles[0][0]+f'\np.{part.page}: '+part.evidence,'검토 필요',.99)
+
+    if category=='SSD':
+        title=re.search(r'Samsung\s+(?:V-NAND\s+)?SSD\s+(\d{3,4}\s+(?:PRO|EVO(?:\s+Plus)?))\b',cover.text,re.I)
+        if title:
+            family=re.sub(r'\s+',' ',title[1]).upper()
+            for p in products:
+                part=p.values.get('부품번호')
+                if part and part.page:
+                    p.values['제품군 모델명']=Value(family,cover.number,title[0],'검토 필요',.99)
+                    p.values['모델명']=Value(f'Samsung {family} {p.values["용량"].text}',cover.number,title[0]+f'\np.{part.page}: '+part.evidence,'검토 필요',.99)
 
 
 def memory_features(doc,products):
@@ -354,12 +371,27 @@ def analyze(path,category,auto_detect=False):
         for c in candidates:bykey[c[0]].append(c)
         common={'제조사','인터페이스','메모리 규격','PCIe 세대','NVMe','DRAM','NAND','전압','폼팩터'}
         for key,values in bykey.items():
-            if key not in common or len({v[1] for v in values})!=1:
+            if key not in common or (key=='DRAM' and len(products)>1) or len({v[1] for v in values})!=1:
                 continue
             for p in products:assign(p,key,*values[0][1:])
-    if category=='SSD':performance_tables(doc,products)
+    if category=='SSD':
+        performance_tables(doc,products)
+        capacity_features(doc,products)
     shared_features(doc,products,category)
     if category=='MEMORY' and any(p.values['용량'].page for p in products):memory_features(doc,products)
     for p in products:
         p.warnings.append('자동 추출은 검토 필요 상태입니다. 페이지·단위·측정 조건을 확인하세요. 인식되지 않은 양식은 누락될 수 있습니다.')
     return products
+
+
+def capacity_features(doc,products):
+    """Only explicitly capacity-specific cells can supply per-model caches."""
+    for table in doc.tables:
+        if table.method!='capacity coordinates':continue
+        header=table.rows[0]
+        for row in table.rows[1:]:
+            if not re.fullmatch(r'DRAM\s+Cache\s+Memory',str(row[0]),re.I):continue
+            for ci,cap in enumerate(header[3:],3):
+                matches=[p for p in products if capacity(p.values.get('용량',Value()).text)==capacity(cap)]
+                if len(matches)==1 and re.fullmatch(r'\d+\s*[GM]B\s+LPDDR\d+[A-Za-z]*',row[ci],re.I):
+                    assign(matches[0],'DRAM',row[ci],table.page,evidence(table,header,row),1.0)

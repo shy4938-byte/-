@@ -13,7 +13,7 @@ from .resources import template_path
 from .parser import analyze
 from .schema import FIELDS
 from .excel import export
-from .fixtures import create_fixtures
+from .fixtures import create_fixtures, create_capacity_fixture
 
 
 def verify(pdf,output_folder):
@@ -66,12 +66,29 @@ def verify_suite(output_folder):
     if not auto_results or auto_results[0][1]:raise RuntimeError('Auto category worker failed')
     window.analysis_result(*auto_results[0])
     if window.category!='SSD' or window.products[0].values['순차읽기 속도'].text!='7400 MB/s':raise RuntimeError('SSD displayed as MEMORY')
+    matrix_pdf=create_capacity_fixture(output/'PDF 샘플'/'용량별 표.pdf')
+    matrix=analyze(matrix_pdf,'SSD')
+    if len(matrix)!=2:raise RuntimeError('Capacity matrix model count mismatch')
+    for i,p in enumerate(matrix):
+        expected_values={'순차읽기 속도':['7,100 MB/s','7,200 MB/s'],'순차쓰기 속도':['6,100 MB/s','6,200 MB/s'],'랜덤읽기 속도':['1,100K IOPS','1300K IOPS'],'랜덤쓰기 속도':['1,500K IOPS','1,600K IOPS'],'내구성':['600 TB','1,200 TB']}
+        for key,values in expected_values.items():
+            if p.values[key].text!=values[i]:raise RuntimeError('Capacity matrix mismatch: '+key)
+        if 'Thread 16' not in p.values['랜덤읽기 속도'].evidence:raise RuntimeError('Missing measurement thread')
+        if p.values['부품번호'].text!=f'ACME-X{i+1}':raise RuntimeError('Concatenated model columns')
+    window.products=matrix;window.rebuild_groups();app.processEvents()
+    matrix_excel=output/'용량별 비교.xlsx';export(template_path(),matrix_excel,'SSD',matrix)
+    wb=load_workbook(matrix_excel)
+    for i,p in enumerate(matrix,3):
+        for r,key in enumerate(FIELDS['SSD'],5):
+            cell=wb['SSD'].cell(r,i)
+            if cell.value!=p.values[key].text or cell.alignment.horizontal!='center':raise RuntimeError('Capacity Excel mismatch')
+    wb.close()
     bundled=bool(getattr(sys,'frozen',False))
     if bundled:
         root=Path(sys.executable).resolve().parent
         for module_name in ['PySide6','fitz','pdfplumber','openpyxl']:
             module=__import__(module_name);module_path=Path(module.__file__).resolve()
             if not module_path.is_relative_to(root):raise RuntimeError('External dependency: '+module_name)
-    report={'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','ssd_on_memory_tab':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
+    report={'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','ssd_on_memory_tab':'passed','capacity_columns_and_qd':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
     (output/'self-test.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');window.close()
     return report

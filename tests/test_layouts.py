@@ -47,3 +47,35 @@ class Layouts(unittest.TestCase):
         doc=fitz.open();p=doc.new_page();p.insert_text((40,40),'Brand ACME\nModel Number ACME-NEW\nSequential Read Speed up to 7.4 GB/s\nRandom Read IOPS 500K IOPS');doc.save(self.path);doc.close()
         result=analyze(self.path,'SSD')[0]
         self.assertEqual(result.name,'ACME-NEW');self.assertEqual(result.values['순차읽기 속도'].text,'7400 MB/s');self.assertEqual(result.values['랜덤읽기 속도'].text,'500K IOPS')
+
+    def test_open_capacity_columns_multiline_qd_and_separate_skus(self):
+        from speccompare.fixtures import create_capacity_fixture
+        create_capacity_fixture(self.path)
+        products=analyze(self.path,'SSD')
+        self.assertEqual(len(products),2)
+        self.assertEqual([p.name for p in products],['ACME-X1','ACME-X2'])
+        self.assertEqual([p.values['순차읽기 속도'].text for p in products],['7,100 MB/s','7,200 MB/s'])
+        self.assertEqual([p.values['순차쓰기 속도'].text for p in products],['6,100 MB/s','6,200 MB/s'])
+        self.assertEqual([p.values['랜덤읽기 속도'].text for p in products],['1,100K IOPS','1300K IOPS'])
+        self.assertEqual([p.values['랜덤쓰기 속도'].text for p in products],['1,500K IOPS','1,600K IOPS'])
+        self.assertEqual([p.values['내구성'].text for p in products],['600 TB','1,200 TB'])
+        self.assertEqual([p.values['DRAM'].text for p in products],['1GB LPDDR4','2GB LPDDR4'])
+        for i,p in enumerate(products,1):
+            self.assertEqual(p.values['판매 코드'].text,f'ACME-X{i}BW\nACME-X{i}B/AM')
+            self.assertEqual(p.values['랜덤읽기 속도 · 측정 QD'].text,'QD32')
+            self.assertIn('Thread 16',p.values['랜덤읽기 속도'].evidence)
+            self.assertEqual(p.values['랜덤쓰기 속도 · QD1'].text,['70K IOPS','71K IOPS'][i-1])
+
+    def test_capacity_coordinates_do_not_join_ambiguous_models(self):
+        from speccompare.fixtures import create_capacity_fixture
+        from speccompare.document import read_document
+        from speccompare.parser import performance_tables
+        from speccompare.schema import FIELDS, EXTRAS
+        create_capacity_fixture(self.path);doc=read_document(self.path)
+        products=[Product('same.pdf','SSD',{k:Value() for k in FIELDS['SSD']+EXTRAS['SSD']}) for _ in range(2)]
+        for p in products:p.values['용량']=Value('1TB',2,'capacity')
+        performance_tables(doc,products)
+        for p in products:
+            self.assertEqual(p.values['순차읽기 속도'].text,'확인 필요')
+            self.assertEqual(p.values['랜덤읽기 속도'].text,'확인 필요')
+            self.assertTrue(any('동일 용량' in w for w in p.warnings))

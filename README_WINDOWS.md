@@ -1,4 +1,4 @@
-# SpecCompare Windows v1.0.1
+# SpecCompare Windows v1.0.2
 
 MEMORY / SSD / VGA PDF 데이터시트에서 사양 후보와 페이지 근거를 추출하고,
 사용자가 검토·수정한 값을 기존 Excel 비교 양식에 입력하는 오프라인 앱입니다.
@@ -8,11 +8,11 @@ Python, Git, VS Code를 최종 사용자 PC에 설치할 필요가 없습니다.
 
 자동 빌드와 ZIP 압축 해제 후 EXE 검증이 성공해야 배포됩니다.
 실제 게시 위치/해시/Actions 실행 주소는 [배포 안내](downloads/SpecCompare_Windows_README.md)와
-[배포 메타데이터](downloads/SpecCompare_Windows_v1.0.1.json)에 기록됩니다.
+[배포 메타데이터](downloads/SpecCompare_Windows_v1.0.2.json)에 기록됩니다.
 
-- 요청된 Git 경로: https://github.com/shy4938-byte/-/raw/refs/heads/speccompare-download/downloads/SpecCompare_Windows_v1.0.1.zip
+- 요청된 Git 경로: https://github.com/shy4938-byte/-/raw/refs/heads/speccompare-download/downloads/SpecCompare_Windows_v1.0.2.zip
 - GitHub 권장 크기 50 MiB를 넘는 ZIP은 Git 저장소에 추가하지 않고 Releases에 게시합니다.
-- Releases 경로: https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.0.1/SpecCompare_Windows_v1.0.1.zip
+- Releases 경로: https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.0.2/SpecCompare_Windows_v1.0.2.zip
 - [자동 빌드 상태](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
 
 링크의 실제 활성화 여부는 성공한 배포 보고서로 확인하세요. 이전 HTML 앱과 설치 파일은 삭제하지 않습니다.
@@ -91,3 +91,7 @@ Windows 10/11 x64 및 ZIP 전체 압축 해제를 확인하세요. _internal DLL
 ## v1.0.1 수정
 
 SSD PDF를 MEMORY 기본 탭에서 분석할 때 메모리 표에 표시되던 문제를 수정했습니다. 문서 제품군 자동 판별, 결과 탭 동기화, 혼합 제품군 차단을 추가했습니다.
+
+## v1.0.2 수정
+
+990 PRO 등의 오른쪽 열린 용량 열 복원, QD/Thread 여러 줄 성능 항목 인식, 모델명·판매 코드 분리, 용량별 DRAM 연결을 추가했습니다.
