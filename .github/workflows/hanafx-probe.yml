@@ -1,0 +1,39 @@
+name: HanaFX official bank connectivity probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [speccompare-download]
+    paths: ['HanaFX/probe_live.py', '.github/workflows/hanafx-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: speccompare-download
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install requests==2.32.5 beautifulsoup4==4.14.2 tzdata==2025.2
+      - name: Check official policy and at most two daily queries
+        run: python HanaFX/probe_live.py downloads/HanaFX_live_probe.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HanaFX-official-site-probe
+          path: downloads/HanaFX_live_probe.json
+      - name: Publish bounded diagnostic report without changing application files
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- downloads/HanaFX_live_probe.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m 'Record HanaFX official bank connectivity probe [skip ci]'
+            git push origin HEAD:speccompare-download
+          }
