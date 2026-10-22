@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [speccompare-download]
-    paths: ['HanaFX/app/**','HanaFX/tests/**','HanaFX/launcher.py','HanaFX/requirements.txt','HanaFX/build_windows.py','HanaFX/installer.iss','HanaFX/publish_release.py','HanaFX/live_check.py','.github/workflows/build-hanafx.yml']
+    paths: ['HanaFX/app/**','HanaFX/tests/**','HanaFX/launcher.py','HanaFX/requirements.txt','HanaFX/build_windows.py','HanaFX/installer.iss','HanaFX/publish_release.py','HanaFX/live_check.py','HanaFX/ci_tests.py','.github/workflows/build-hanafx.yml']
 permissions:
   contents: read
 concurrency:
@@ -30,7 +30,7 @@ jobs:
       - name: Sample, captured, calculation, cache and GUI tests
         working-directory: HanaFX
         run: |
-          python -m unittest discover -s tests -v
+          python ci_tests.py reports/unit-tests.json --strict
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

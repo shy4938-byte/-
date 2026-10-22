@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [speccompare-download]
-    paths: ['HanaFX/probe_live.py', '.github/workflows/hanafx-probe.yml']
+    paths: ['HanaFX/probe_live.py', 'HanaFX/ci_tests.py', '.github/workflows/hanafx-probe.yml']
 permissions:
   contents: read
 jobs:
@@ -21,21 +21,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install requests==2.32.5 beautifulsoup4==4.14.2 tzdata==2025.2
+      - run: python -m pip install -r HanaFX/requirements.txt
+      - name: Record native Windows test diagnostics
+        run: python HanaFX/ci_tests.py downloads/HanaFX_windows_unit_diagnostic.json
       - name: Check official policy and at most two daily queries
         run: python HanaFX/probe_live.py downloads/HanaFX_live_probe.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: HanaFX-official-site-probe
-          path: downloads/HanaFX_live_probe.json
+          path: |
+            downloads/HanaFX_live_probe.json
+            downloads/HanaFX_windows_unit_diagnostic.json
       - name: Publish bounded diagnostic report without changing application files
         if: always()
         shell: pwsh
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- downloads/HanaFX_live_probe.json
+          git add -- downloads/HanaFX_live_probe.json downloads/HanaFX_windows_unit_diagnostic.json
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
             git commit -m 'Record HanaFX official bank connectivity probe [skip ci]'
