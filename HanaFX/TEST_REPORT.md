@@ -1,3 +1,40 @@
+# HanaFX v1.0.1 검증 보고서 — 오늘만 갱신
+
+## 변경 내용
+
+기존 v1.0.0은 저장한 과거 정상값을 재사용했지만, 자동 조회가 미수집·재시도 대상 과거 날짜까지 계속 채웠습니다. v1.0.1은 자동 실행·조회 버튼·날짜 전환 시 오늘 날짜 하나만 요청하고, 모든 과거 값은 로컬 SQLite에서 읽습니다.
+
+- 과거 자료가 전혀 없거나 과거 오류가 오래돼도 일상 조회에 과거 요청을 추가하지 않음.
+- 주말·휴일에는 오늘의 고시 없음 상태만 갱신. 최근 고시는 저장된 검증 자료에서 표시하며 과거를 새로 찾지 않음.
+- 과거 수집은 별도 **과거 누락 자료 받기** 버튼으로 명시적으로 실행. 정상 저장값 재사용, 중간 취소·이어받기 지원.
+- 강제 재조회 체크박스는 과거 수집에만 적용. 일상 조회는 체크 상태에 관계없이 오늘만 요청.
+- DB 경로·조직명·앱명·테이블 스키마·Inno AppId 유지. 기존 저장 DB와 설치 경로 재사용.
+- 앱을 사용하지 않은 날의 누락값은 자동 보충하지 않으며 별도 과거 수집으로 받음. 빈 값을 임의 환율로 채우지 않음.
+
+## 검증 범위
+
+- 로컬 및 Windows Actions 단위 테스트 각각 **34개 통과**.
+- 신규 회귀 검사: 과거 미수집·오래된 오류가 있는 DB에서도 오늘만 요청, DB 재열기 후 다음 날만 추가, 휴일의 과거 요청 0건, 명시적 과거 수집과 재사용, 강제 재조회 분리.
+- 실제 GUI의 갱신 버튼·월 전환은 오늘 날짜만 요청하고, 과거 버튼만 과거를 요청하는지 확인.
+- 로컬 합성 실행 검사 통과: GUI·차트·SQLite·Excel. 합성 데이터를 실제 은행 응답으로 취급하지 않음.
+
+## Windows EXE 및 배포 검증 완료
+
+- [v1.0.1 Windows 빌드·게시 성공](https://github.com/shy4938-byte/-/actions/runs/39751500532). 소스 `300fe23d3422fef3e0400422ba0556d0f181db66`.
+- 실제 Windows EXE의 갱신 버튼에서 요청한 날짜: **2026-10-22 하나뿐**. `quick_refresh_query_dates=["2026-10-22"]` 확인. [실행 보고서](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/build-report.json).
+- 한글 경로 ZIP 압축 해제, 개발 환경 PATH 제거 후 EXE 실행·SQLite·Excel·표/그래프·실제 은행 조회 통과.
+- Inno 설치 후 설치된 EXE의 동일 실행·실제 은행·오늘만 조회 검사 통과.
+- [실제 HTTP 보고서](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/full-month-live-report.json): 두 연도 1월 전체 평균 검증 complete=true. 2026년 1월 1,456.51원 / 2025년 1월 1,455.79원. 이 일괄 검증은 배포 전 테스트로 실행하며 앱의 일상 갱신은 오늘만 조회.
+- [ZIP](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Windows_v1.0.1.zip): 55,100,122 bytes, SHA-256 `65fe6152d2667fba6d313828c8a609c0f44f42e6739c2bbddcb2f09a3e8c7776`.
+- [설치형 EXE](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Setup_v1.0.1.exe): 38,978,633 bytes, SHA-256 `2cb0454d05887500f8f3270873a6faf7eccc588a273c19a40fef905a190abc1c`.
+- 두 공개 URL에서 실제 파일 다운로드 완료. ZIP 해시 일치, 862개 항목 CRC 정상, AMD64 HanaFX.exe·_internal 포함, 샘플 DB 미포함 확인.
+- 미검증: 일반 사용자 실물 Windows PC·SmartScreen·Microsoft Excel GUI, 기존 설치된 v1.0.0 위에 사용자 PC에서 직접 업데이트하는 과정, 미래 은행 HTML/정책 변경. DB 재열기·기존 값 보존은 자동 회귀 검사로 검증.
+
+
+---
+
+아래는 보존한 v1.0.0 배포 당시 검증 결과입니다.
+
 # HanaFX v1.0.0 검증 보고서
 
 검증일: 2026-10-22. 샘플 HTML, 실제 HTTP, Windows EXE 실행을 구분합니다.
