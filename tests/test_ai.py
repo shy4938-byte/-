@@ -135,3 +135,25 @@ class AI(unittest.TestCase):
         reply=copy.deepcopy(self.reply)
         reply['models'][0]['fields'] += [dict(key=[],value='x'),dict(key='가격',value='x',scope=[],page=1,quote='ACME')]
         self.assertEqual(len(decode(self.doc,[reply])),2)
+
+    def test_long_inventory_is_split_without_omitting_pages(self):
+        from speccompare.ai import inventory_blocks
+        from speccompare.document import Document,Page
+        text='한글 테스트 ABC 123\n'*3000
+        doc=Document('sample',[Page(1,text,[]),Page(2,'TAIL-SECOND-PAGE',[])],[],[])
+        blocks=inventory_blocks(doc,limit=2000)
+        self.assertGreater(len(blocks),2);self.assertTrue(all(len(b.encode('utf-8'))<=2001 for b in blocks))
+        combined=''.join(blocks);self.assertEqual(combined.count('한글'),3000);self.assertIn('TAIL-SECOND-PAGE',combined)
+    def test_local_context_overflow_and_truncated_output_are_explicit_errors(self):
+        with patch('speccompare.ai.request_json') as request:
+            with self.assertRaises(AnalysisError):infer(AIConfig(),'x'*19000)
+            request.assert_not_called()
+        with patch('speccompare.ai.request_json',return_value={'done_reason':'length','message':{'content':json.dumps(self.reply)}}):
+            with self.assertRaises(AnalysisError):infer(AIConfig(),'short')
+    def test_unicode_ocr_data_is_cached_with_verified_content(self):
+        from speccompare.ocr import data_path
+        directory=Path(self.tmp.name)/'한글 OCR';directory.mkdir()
+        for name in ['eng.traineddata','kor.traineddata']:(directory/name).write_bytes(name.encode())
+        with patch('speccompare.ocr.sys.platform','win32'):
+            result=data_path(directory)
+        self.assertTrue(result.isascii());self.assertEqual((Path(result)/'eng.traineddata').read_bytes(),b'eng.traineddata')

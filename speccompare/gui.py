@@ -36,7 +36,7 @@ class Worker(QThread):
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle('SpecCompare 1.1.0'); self.resize(1150,800)
+        super().__init__(); self.setWindowTitle('SpecCompare 1.1.1'); self.resize(1150,800)
         self.setWindowIcon(QIcon(str(ROOT/'assets/icon.ico')))
         self.products=[]; self.saved=None; self.worker=None; self.refreshing=False
         from .ai_settings import load_config

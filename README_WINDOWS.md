@@ -1,4 +1,4 @@
-# SpecCompare Windows v1.1.0
+# SpecCompare Windows v1.1.1
 
 다양한 PDF 양식을 글자·표·페이지 이미지로 해석하는 AI 분석 모드와 내장 OCR을 추가했습니다.
 기존 규칙 추출도 별도 모드로 유지합니다. Python, Git, VS Code 설치는 필요하지 않습니다.
@@ -7,7 +7,7 @@
 
 [최신 배포 안내](downloads/SpecCompare_Windows_README.md) · [빌드 결과](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
 
-성공한 배포의 실제 URL·해시는 downloads/SpecCompare_Windows_v1.1.0.json에 기록됩니다.
+성공한 배포의 실제 URL·해시는 downloads/SpecCompare_Windows_v1.1.1.json에 기록됩니다.
 50 MiB를 넘는 ZIP은 GitHub Releases에 게시합니다. 이전 배포 및 다른 앱은 보존합니다.
 
 ## 처음 실행: AI 연결을 한 번 설정하세요
@@ -47,7 +47,7 @@ API 키는 이번 앱 실행의 메모리에만 보관하고 설정 파일·로�
 영어·한국어 Tesseract fast 언어 데이터를 포함합니다. 텍스트가 없거나 매우 적은 스캔 페이지는 내장 OCR로 읽고, AI에는 페이지 이미지도 전달합니다.
 OCR은 오인식할 수 있습니다. 암호화 PDF는 해제 후 사용하세요.
 문서를 요약해 일부 페이지를 몰래 생략하지 않습니다. 한 번에 최대 100페이지/추출 글자 30만 자이며 초과하면 나누어 분석하라는 오류를 표시합니다.
-모델 목록을 먼저 해석한 뒤 2페이지씩 이미지를 분석하므로 여러 번의 AI 요청이 발생합니다.
+모델 목록은 전체 문서를 크기에 따라 나누어 해석하고, 이미지는 로컬 1페이지/온라인 2페이지씩 분석합니다. 여러 번의 AI 요청이 발생합니다. 로컬 요청이 보수적인 문맥 크기를 넘으면 생략하지 않고 분할 안내 오류를 표시합니다.
 
 ## 오류 확인
 

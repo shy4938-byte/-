@@ -82,7 +82,8 @@ def read_document(path,ocr=False):
                 words=page.get_text('words')
                 if ocr and len(re.sub(r'\W','',text))<30:
                     from .resources import ROOT
-                    data=ROOT/'assets'/'ocr'
+                    from .ocr import data_path
+                    data=data_path(ROOT/'assets'/'ocr')
                     try:
                         tp=page.get_textpage_ocr(language='eng+kor',dpi=200,full=True,tessdata=str(data))
                         text=page.get_text(textpage=tp,sort=True);words=page.get_text('words',textpage=tp)

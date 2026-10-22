@@ -78,10 +78,13 @@ Use the provided Korean field keys. Every fact must include its real PDF page nu
 
 def infer(config,prompt,images=()):
     config.validate()
+    if config.provider=='ollama' and len(prompt.encode('utf-8'))>(14000 if images else 18000):
+        raise AnalysisError('로컬 AI의 안전한 문맥 크기를 초과했습니다. 문서를 나누거나 온라인 AI를 선택하세요. 일부 내용을 생략해 분석하지 않습니다.')
     if config.provider=='ollama':
-        payload={'model':config.model,'stream':False,'format':SCHEMA,'options':{'temperature':0,'num_ctx':32768},
+        payload={'model':config.model,'stream':False,'format':SCHEMA,'options':{'temperature':0,'num_ctx':32768,'num_predict':8192},
                  'messages':[{'role':'system','content':INSTRUCTIONS},{'role':'user','content':prompt,'images':list(images)}]}
         result=request_json(config.endpoint.rstrip('/')+'/api/chat',payload,timeout=config.timeout)
+        if result.get('done_reason')=='length' or result.get('done') is False:raise AnalysisError('AI 출력 한도에 도달했습니다. 문서를 나누어 재시도하세요.')
         raw=result.get('message',{}).get('content','')
     else:
         content=[{'type':'input_text','text':prompt}]+[{'type':'input_image','image_url':'data:image/png;base64,'+v} for v in images]
@@ -252,14 +255,25 @@ def analyze_ai(path,category,config,progress=None):
     doc=read_document(path,ocr=True)
     if len(doc.pages)>100 or len(doc.text)>300000:raise AnalysisError('AI 분석 한도(100페이지/글자 30만 자)를 초과했습니다. 문서를 나누어 주세요. 일부 페이지를 생략하지는 않습니다.')
     fields=json.dumps({k:FIELDS[k]+EXTRAS[k]+['판매 코드','폼팩터','보증','제품군 모델명'] for k in FIELDS},ensure_ascii=False)
-    context='\n'.join(f'PDF PAGE {p.number}\n{p.text}' for p in doc.pages)
     if progress:progress('모델 목록과 문서 구조를 해석하고 있습니다.')
-    inventory=infer(config,'Allowed field keys: '+fields+'\nTask: Discover all hardware models and their capacities, manufacturer and family. Do not extract performance in this inventory pass. Selected category is only a hint: '+category+'\nDOCUMENT:\n'+context)
-    responses=[inventory]
+    responses=[]
+    for block in inventory_blocks(doc):
+        responses.append(infer(config,'Allowed field keys: '+fields+'\nTask: Discover all hardware models and capacities from this document portion. Do not extract performance in this inventory pass. Selected category is only a hint: '+category+'\nDOCUMENT PORTION:\n'+block))
+    outline={}
+    for response in responses:
+        for model in response.get('models',[]):
+            if isinstance(model,dict) and isinstance(model.get('id'),str):
+                identity=model_key(model['id'])
+                if identity not in outline:
+                    outline[identity]={k:model.get(k) for k in ['id','name','category','page','quote']}
+                    outline[identity]['fields']=[f for f in model.get('fields',[]) if isinstance(f,dict) and f.get('key') in ('용량','VRAM 용량','제조사','제품군 모델명')]
+    inventory={'models':list(outline.values())}
+
     # Each batch sees the global inventory, so catalogues and specs can be on different pages.
     with fitz.open(doc.source) as pdf:
-        for start in range(0,len(doc.pages),2):
-            batch=doc.pages[start:start+2];images=[]
+        batch_size=1 if config.provider=='ollama' else 2
+        for start in range(0,len(doc.pages),batch_size):
+            batch=doc.pages[start:start+batch_size];images=[]
             for p in batch:
                 page=pdf[p.number-1];scale=min(2.0,1600/max(page.rect.width,page.rect.height))
                 images.append(base64.b64encode(page.get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False).tobytes('png')).decode('ascii'))
@@ -269,3 +283,23 @@ def analyze_ai(path,category,config,progress=None):
     result=decode(doc,responses)
     for p in result:p.warnings.extend(doc.warnings)
     return result
+
+
+def inventory_blocks(doc,limit=9000):
+    """Cover every page/character; split by UTF-8 size rather than silently trim."""
+    blocks=[];current=''
+    for page in doc.pages:
+        prefix=f'PDF PAGE {page.number}\n'
+        fragment='';size=0
+        for char in page.text:
+            width=len(char.encode('utf-8'))
+            if size+width>limit-len(prefix.encode('utf-8')):
+                part=prefix+fragment
+                if current:blocks.append(current);current=''
+                blocks.append(part);fragment='';size=0
+            fragment+=char;size+=width
+        part=prefix+fragment
+        if len((current+part).encode('utf-8'))>limit and current:blocks.append(current);current=''
+        current+=part+'\n'
+    if current:blocks.append(current)
+    return blocks

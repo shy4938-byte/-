@@ -1,4 +1,4 @@
-SpecCompare Windows v1.1.0 (64-bit)
+SpecCompare Windows v1.1.1 (64-bit)
 
 1. ZIP 전체 압축 해제 → SpecCompare.exe 실행. Python/Git 설치 불필요.
 2. AI 연결 설정에서 로컬 Ollama 설치·실행 및 qwen2.5vl:7b 모델 다운로드.
