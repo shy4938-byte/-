@@ -1,0 +1,12 @@
+{
+  "version": "1.2.0",
+  "url": "https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.2.0/SpecCompare_Windows_v1.2.0.zip",
+  "sha256": "0ebe3a72e367a1154a178e74ebb228018884e113da3dd0d2ea2d3e68b9c17429",
+  "bytes": 92535582,
+  "location": "GitHub Releases",
+  "setup_url": "https://github.com/shy4938-byte/-/releases/download/speccompare-windows-v1.2.0/SpecCompare_Setup_v1.2.0.exe",
+  "actions_run": "https://github.com/shy4938-byte/-/actions/runs/39731236561",
+  "source_sha": "c2a3b02be8d459e8b4684dfa86dd7497ca276aec",
+  "ai_setup_required": true,
+  "ai_live_accuracy": "UNVERIFIED; configure a model and review source evidence"
+}
