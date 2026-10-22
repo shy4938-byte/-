@@ -1,0 +1,48 @@
+{
+  "version": "1.0.2",
+  "archive": "SpecCompare_Windows_v1.0.2.zip",
+  "bytes": 89378543,
+  "sha256": "afb80848393835f4709fe3e94016370c0df7ee28d6d4aa04835d8a213f9de1c5",
+  "runtime": {
+    "status": "passed",
+    "frozen": true,
+    "platform": "win32",
+    "checks": [
+      {
+        "category": "MEMORY",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "MEMORY 검증.pdf"
+      },
+      {
+        "category": "SSD",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "SSD 검증.pdf"
+      },
+      {
+        "category": "VGA",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "VGA 검증.pdf"
+      }
+    ],
+    "multiple_pdf": "passed",
+    "ssd_on_memory_tab": "passed",
+    "capacity_columns_and_qd": "passed",
+    "template_sha256": "3c8bb241a4bcb4be89069636f5ecd3acdf198275f29d79659604891dbe064e89",
+    "executable": "D:\\a\\-\\-\\dist\\windows-v1.0.2\\ZIP 압축 해제 검증\\SpecCompare\\SpecCompare.exe",
+    "test_scope": "synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification"
+  },
+  "github_actions": true,
+  "runner_os": "Windows",
+  "source_sha": "f913e2cc73f9584922be1464f5e881a3e3cfd534",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "installer": "Inno Setup: built, installed, packaged self-test passed"
+}
