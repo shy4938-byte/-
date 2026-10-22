@@ -47,6 +47,6 @@ def probe(output):
     except Exception as exc:result['error']=str(exc)
     finally:
         Path(output).parent.mkdir(parents=True,exist_ok=True);Path(output).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
-    print(json.dumps(result,ensure_ascii=False,indent=2));return result
+    print(json.dumps(result,ensure_ascii=True,indent=2));return result
 
 if __name__=='__main__':probe(sys.argv[1] if len(sys.argv)>1 else 'live_probe.json')

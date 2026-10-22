@@ -10,6 +10,8 @@ jobs:
   probe:
     runs-on: windows-latest
     timeout-minutes: 6
+    env:
+      PYTHONUTF8: "1"
     permissions:
       contents: write
     steps:
@@ -23,10 +25,12 @@ jobs:
       - name: Check official policy and at most two daily queries
         run: python HanaFX/probe_live.py downloads/HanaFX_live_probe.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: HanaFX-official-site-probe
           path: downloads/HanaFX_live_probe.json
       - name: Publish bounded diagnostic report without changing application files
+        if: always()
         shell: pwsh
         run: |
           git config user.name 'github-actions[bot]'
