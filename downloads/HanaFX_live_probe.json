@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-10-22T17:08:11.884001+09:00",
+  "observed_at": "2026-10-22T17:18:03.325865+09:00",
   "source": "https://www.kebhana.com/cms/rate/wpfxd651_01i_01.do",
   "status": "http_probe_completed",
   "samples": [
@@ -36,12 +36,12 @@
       "observed_at": "2026-10-22T16:57:17.519013+09:00"
     },
     {
-      "observed_at": "2026-10-22T17:08:11.884001+09:00",
+      "observed_at": "2026-10-22T17:18:03.325865+09:00",
       "requested": "2026-10-18",
       "http_status": 200,
-      "sha256": "317340af8143a112a6ef80ca2b5bc6bf08b4b29958eb924e9326ea84bcf0d92e",
+      "sha256": "cc9064ad3e3ec0127f0b21bbba1812a5011d5807bd24ab2b7ef24bcbe558db43",
       "bytes": 3611,
-      "metadata": "기준일 : 2026년10월16일 고시일시 : 2026년10월16일 08시24분21초 (1회차) 조회시각 : 2026년10월22일 17시08분18초",
+      "metadata": "기준일 : 2026년10월16일 고시일시 : 2026년10월16일 08시24분21초 (1회차) 조회시각 : 2026년10월22일 17시18분15초",
       "tables": [
         {
           "thead": "<thead>\n<tr>\n<th class=\"leftNone\" rowspan=\"3\" scope=\"col\">통화</th>\n<th class=\"leftLine\" colspan=\"4\" scope=\"col\">현찰</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">송금</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">외화<br/>수표<br/>파실때</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">매매<br/>기준율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">환가<br/>료율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">미화<br/>환산율</th>\n</tr>\n<tr>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">사실 때</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">파실 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">보낼 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">받을 때</th>\n</tr>\n<tr>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n</tr>\n</thead>",
@@ -52,12 +52,12 @@
       ]
     },
     {
-      "observed_at": "2026-10-22T17:08:11.884001+09:00",
+      "observed_at": "2026-10-22T17:18:03.325865+09:00",
       "requested": "2026-01-01",
       "http_status": 200,
-      "sha256": "f94719ff296f206066560dfa07d7e6d7cfa9760e60fdb5b93efa8b0bda36ac25",
+      "sha256": "6aca32482c4eb33cca64220ef485659729325aaa08c60059d5961ac5b756759c",
       "bytes": 3611,
-      "metadata": "기준일 : 2025년12월31일 고시일시 : 2025년12월31일 08시24분31초 (1회차) 조회시각 : 2026년10월22일 17시08분21초",
+      "metadata": "기준일 : 2025년12월31일 고시일시 : 2025년12월31일 08시24분31초 (1회차) 조회시각 : 2026년10월22일 17시18분17초",
       "tables": [
         {
           "thead": "<thead>\n<tr>\n<th class=\"leftNone\" rowspan=\"3\" scope=\"col\">통화</th>\n<th class=\"leftLine\" colspan=\"4\" scope=\"col\">현찰</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">송금</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">외화<br/>수표<br/>파실때</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">매매<br/>기준율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">환가<br/>료율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">미화<br/>환산율</th>\n</tr>\n<tr>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">사실 때</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">파실 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">보낼 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">받을 때</th>\n</tr>\n<tr>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n</tr>\n</thead>",
