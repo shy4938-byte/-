@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "github_actions": true,
-  "source_sha": "4f1a544abeb55d2b9f3815c5b292248a81525937",
-  "sha256": "e2481d4f2647ddd576a76820a2c10748a7f872fd53cb89ba0ee60b2ba4bccf9b",
-  "bytes": 55098420,
+  "source_sha": "300fe23d3422fef3e0400422ba0556d0f181db66",
+  "sha256": "65fe6152d2667fba6d313828c8a609c0f44f42e6739c2bbddcb2f09a3e8c7776",
+  "bytes": 55100122,
   "runtime": {
     "status": "passed",
     "platform": "win32",
@@ -13,7 +13,7 @@
     "live": {
       "kind": "live official bank HTTP",
       "status": "passed",
-      "observed_at": "2026-10-22T08:23:43.025149+00:00",
+      "observed_at": "2026-10-22T09:00:43.730461+00:00",
       "queries": [
         {
           "requested": "2026-10-22",
@@ -21,7 +21,7 @@
           "currency": "USD",
           "round": 1,
           "announced_at": "2026-10-21T23:24:07+00:00",
-          "response_sha256": "9570d2c9b1e855b74a432899f39d42e50bfed702f40cd08663e6a095f3b5bf71",
+          "response_sha256": "71d77ea2f34b332f4687ddb053ab46470ef09e80bd3fa01c9df2c65ccd0be21d",
           "status": "verified"
         },
         {
@@ -30,7 +30,7 @@
           "currency": "USD",
           "round": 1,
           "announced_at": "2025-10-21T23:25:23+00:00",
-          "response_sha256": "e36710572353007bf1b7b55013017204c45dfc1e331cae0454ec7a17e5f76069",
+          "response_sha256": "0ae7f263e6ef56b49d20a248185b0a49ca8d1f89a8388950eaff528b204945c9",
           "status": "verified"
         },
         {
@@ -45,6 +45,9 @@
         "robots_allowed": true,
         "date_field": "tmpInqStrDt"
       },
+      "quick_refresh_query_dates": [
+        "2026-10-22"
+      ],
       "refresh_button_worker": "passed (real verified response, then cancelled)",
       "table_chart_excel": "passed"
     }

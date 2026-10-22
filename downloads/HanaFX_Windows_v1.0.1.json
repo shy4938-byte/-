@@ -1,0 +1,10 @@
+{
+  "version": "1.0.1",
+  "url": "https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Windows_v1.0.1.zip",
+  "setup_url": "https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Setup_v1.0.1.exe",
+  "sha256": "65fe6152d2667fba6d313828c8a609c0f44f42e6739c2bbddcb2f09a3e8c7776",
+  "bytes": 55100122,
+  "source_sha": "300fe23d3422fef3e0400422ba0556d0f181db66",
+  "actions_run": "https://github.com/shy4938-byte/-/actions/runs/39751500532",
+  "official_live_status": "passed"
+}
