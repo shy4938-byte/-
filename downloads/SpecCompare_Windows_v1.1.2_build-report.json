@@ -1,0 +1,56 @@
+{
+  "version": "1.1.2",
+  "archive": "SpecCompare_Windows_v1.1.2.zip",
+  "bytes": 92536750,
+  "sha256": "7854b60d3e42ed73cd8559ebd2a8c23bbbf0d581edbd20a773e6792b03a3bcfb",
+  "runtime": {
+    "ai": {
+      "provider_contract": "passed (deterministic local fixture server)",
+      "page_images": "passed",
+      "family_max_scope": "passed",
+      "evidence_excel": "passed",
+      "bundled_ocr": "passed",
+      "live_llm": "UNVERIFIED: no model or API credentials supplied"
+    },
+    "status": "passed",
+    "frozen": true,
+    "platform": "win32",
+    "checks": [
+      {
+        "category": "MEMORY",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "MEMORY 검증.pdf"
+      },
+      {
+        "category": "SSD",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "SSD 검증.pdf"
+      },
+      {
+        "category": "VGA",
+        "analysis": "passed",
+        "worker": "passed",
+        "gui_edit": "passed",
+        "excel": "passed",
+        "source": "VGA 검증.pdf"
+      }
+    ],
+    "multiple_pdf": "passed",
+    "ssd_on_memory_tab": "passed",
+    "capacity_columns_and_qd": "passed",
+    "template_sha256": "3c8bb241a4bcb4be89069636f5ecd3acdf198275f29d79659604891dbe064e89",
+    "executable": "D:\\a\\-\\-\\dist\\windows-v1.1.2\\ZIP 압축 해제 검증\\SpecCompare\\SpecCompare.exe",
+    "test_scope": "synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification"
+  },
+  "github_actions": true,
+  "runner_os": "Windows",
+  "source_sha": "266ea5213d3b3b058c01c4699d567d8dd1038bbc",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "installer": "Inno Setup: built, installed, packaged self-test passed"
+}
