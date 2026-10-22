@@ -126,7 +126,7 @@ class Window(QMainWindow):
     def apply_snapshot(self,snapshot):
         if snapshot.asof!=self.effective_day:return
         self.snapshot=snapshot;day=snapshot.asof
-        self.heading.setText(f'HanaFX · {day:%Y년 %m월 %d일} · USD 최초 고시 매매기준율')
+        self.heading.setText(f'HanaFX · {day.year}년 {day.month:02d}월 {day.day:02d}일 · USD 최초 고시 매매기준율')
         self.month_title.setText(f'월평균 비교 · {day.year}/{day.year-1}년 1~{day.month-1}월' if day.month>1 else f'{day.year}년 월평균 · 아직 완료된 월 없음')
         self.day_title.setText(f'당월 일별 비교 · {day.year}/{day.year-1}년 {day.month}월 1~{day.day}일')
         top=cards(snapshot);current=top['current'];previous=top['previous']

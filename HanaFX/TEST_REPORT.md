@@ -14,3 +14,5 @@
 로컬: 파서·날짜·평균·누락·캐시·취소·접근 제한·표/그래프·Excel 테스트 통과. 최종 개수와 Windows 결과는 배포 전 갱신.
 
 미검증: 일반 사용자 Windows 10/11 실물 PC, SmartScreen, Microsoft Excel GUI, 미래 은행 HTML/접근 정책 변경, 현재 2개 표본 외 전체 기간 값의 독립 대조.
+
+Windows에서 발견·수정한 오류: date.__format__에 한글을 포함한 strftime 서식을 넘기면 locale UnicodeEncodeError 발생. 날짜를 숫자와 한글 리터럴로 직접 조합하도록 수정. 로컬은 통과하더라도 Windows 검증이 필요한 사례로 기록합니다.
