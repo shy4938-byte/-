@@ -5,19 +5,22 @@ Windows 10/11 x64용 독립 실행 앱입니다. Python·Node.js·AI 프로그�
 
 ## 다운로드·실행
 
-[Windows ZIP 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.0/HanaFX_Windows_v1.0.0.zip) · [설치형 EXE 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.0/HanaFX_Setup_v1.0.0.exe)
+[Windows ZIP 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Windows_v1.0.1.zip) · [설치형 EXE 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.1/HanaFX_Setup_v1.0.1.exe)
 
-Windows 빌드·설치·실제 은행 조회를 통과한 v1.0.0입니다. [배포 안내](../downloads/HanaFX_Windows_README.md)에서 SHA-256을 확인할 수 있습니다.
+오늘만 갱신하는 v1.0.1입니다. 빌드·배포 및 실행 검증 결과는 TEST_REPORT.md에 기록합니다. [배포 안내](../downloads/HanaFX_Windows_README.md)에서 SHA-256을 확인할 수 있습니다.
 [Windows Actions](https://github.com/shy4938-byte/-/actions/workflows/build-hanafx.yml)에서 Artifact도 받을 수 있습니다.
 
 1. ZIP 전체 압축 해제 → HanaFX/HanaFX.exe 실행. 또는 제공된 설치형 EXE를 실행합니다.
-2. 실행 시 자동 조회합니다. **조회 · 최신 데이터 갱신**으로 오늘 데이터를 다시 확인합니다.
-3. 최초 실행은 올해·작년 1월부터 당월 동일 일자까지 하루씩 조회하므로 수 분~십여 분 이상 걸릴 수 있습니다. 진행률·취소를 지원합니다.
-4. 과거 검증값은 SQLite에 저장해 재사용합니다. 필요하면 **과거 자료도 재확인**을 선택합니다.
-5. **Excel 저장**으로 월평균_비교 / 당월_일별_비교 / 환율_원본데이터 시트를 저장합니다.
+2. 실행 시 자동 조회합니다. **오늘 환율만 갱신**으로 오늘 데이터만 다시 확인합니다.
+3. 저장된 과거 자료는 즉시 표시하며, 자동 조회·갱신·날짜 전환 때는 **오늘 날짜만** 조회합니다. 주말·휴일에도 과거 날짜를 추가 조회하지 않습니다. 최근 고시는 이미 저장된 자료에서만 표시합니다.
+4. 처음 사용하는 PC나 중간에 사용하지 않은 기간 등 **과거 미수집 자료는 자동으로 채우지 않습니다**. 필요할 때 **과거 누락 자료 받기**를 한 번 실행하세요. 올해·작년 비교 기간을 수집하므로 수 분~십여 분 이상 걸릴 수 있으며 취소 후 이어받기를 지원합니다. 이미 받은 정상 과거 값은 재조회하지 않습니다.
+5. **과거 수집 시 저장된 자료도 재조회**는 명시적으로 과거 자료를 재검증할 때만 선택합니다. 오늘 갱신에는 적용되지 않습니다.
+6. **Excel 저장**으로 월평균_비교 / 당월_일별_비교 / 환율_원본데이터 시트를 저장합니다.
 
 원본 은행 데이터나 샘플 DB를 배포 앱에 끼워 넣지 않습니다. 처음에는 인터넷이 필요합니다.
 인터넷 실패 시 수집된 데이터만 표시하고, 저장된 데이터·부분 자료·오류 상태를 구분합니다.
+v1.0.0에서 사용하던 DB 경로와 스키마를 그대로 사용하므로 같은 Windows 사용자라면 업데이트 후에도 기존 데이터가 유지됩니다. 앱을 사용하지 않은 날의 값은 다음 실행에서 자동으로 채우지 않으며, 과거 누락 자료 받기로 보충합니다.
+
 DB는 Windows의 사용자 AppLocalDataLocation/HanaFX 폴더에 저장합니다(일반적으로 %LOCALAPPDATA%/HanaFX/HanaFX/).
 
 ## 계산 기준

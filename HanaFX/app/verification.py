@@ -56,7 +56,12 @@ def live_check(output,full_month=False):
                 if status=='no_data':db.mark(d,'no_data','실제 서버: 해당 날짜 고시 없음')
             loaded,coverage=db.load(today)
         snap=Snapshot(today,loaded,coverage,set(loaded));export_snapshot(snap,output/'실제_환율_비교.xlsx')
-        app=QApplication.instance() or QApplication([]);window=Window(output/'실제_환율.sqlite3',auto_start=False);window.apply_snapshot(snap);window.show();app.processEvents()
+        refresh_dates=[]
+        class TrackedClient(HanaClient):
+            def fetch(self,day):
+                refresh_dates.append(day)
+                return super().fetch(day)
+        app=QApplication.instance() or QApplication([]);window=Window(output/'실제_환율.sqlite3',auto_start=False,client_factory=TrackedClient);window.apply_snapshot(snap);window.show();app.processEvents()
         expected=[(r['day'],r['current']) for r in daily_rows(snap) if r['current'] is not None]
         if window.day_chart.plotted['current']!=expected:raise RuntimeError('실제 일별 표/그래프 불일치')
         window.status.setText('실제 하나은행 HTTP 검증 데이터 · 1월 완료 월 및 최신 고시 표본 · 나머지 기간은 미수집')
@@ -72,6 +77,8 @@ def live_check(output,full_month=False):
         if window.worker.isRunning():raise RuntimeError('Live refresh worker did not stop')
         app.processEvents()
         if not window.snapshot.fresh or window.snapshot.error:raise RuntimeError('Actual refresh worker failed: '+window.snapshot.error)
+        if refresh_dates!=[today]:raise RuntimeError('Routine refresh queried historical dates: '+str(refresh_dates))
+        report['quick_refresh_query_dates']=[str(d) for d in refresh_dates]
         report['refresh_button_worker']='passed (real verified response, then cancelled)'
         window.close();report['table_chart_excel']='passed';report['status']='passed'
     except Exception as exc:report['error']=str(exc)
@@ -90,7 +97,7 @@ def self_test(output,live=False):
             if day not in records:raise NoPublication('Synthetic fixture: no data')
             return records[day]
         def close(self):pass
-    path=output/'합성_검증.sqlite3';snap=collect(path,today,client_factory=FixtureClient)
+    path=output/'합성_검증.sqlite3';snap=collect(path,today,client_factory=FixtureClient,history=True)
     if snap.error:raise RuntimeError(snap.error)
     app=QApplication.instance() or QApplication([])
     window=Window(path,clock=lambda:datetime(2026,10,22,tzinfo=KST),auto_start=False);window.apply_snapshot(snap);window.show();app.processEvents()

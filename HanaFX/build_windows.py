@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib,json,os,shutil,subprocess,sys,zipfile
 
 ROOT=Path(__file__).resolve().parent
-VERSION='1.0.0'
+VERSION='1.0.1'
 
 def build():
     if sys.platform!='win32':raise RuntimeError('Windows runner required')

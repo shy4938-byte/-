@@ -44,7 +44,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $dist = Join-Path $PWD 'HanaFX/dist/windows-v1.0.0'
+          $dist = Join-Path $PWD 'HanaFX/dist/windows-v1.0.1'
           $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
           $reportPath = Join-Path $dist 'build-report.json'
           $report = Get-Content -Raw $reportPath | ConvertFrom-Json
@@ -52,7 +52,7 @@ jobs:
             & $iscc "/DAppSource=$dist\HanaFX" "/DInstallerOutput=$dist" HanaFX/installer.iss
             if ($LASTEXITCODE -ne 0) { throw 'Inno compilation failed' }
             $install = Join-Path $env:RUNNER_TEMP '설치 검증\HanaFX'
-            $process = Start-Process "$dist\HanaFX_Setup_v1.0.0.exe" -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=`"$install`"") -Wait -PassThru
+            $process = Start-Process "$dist\HanaFX_Setup_v1.0.1.exe" -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=`"$install`"") -Wait -PassThru
             if ($process.ExitCode -ne 0) { throw 'Installation failed' }
             $out = Join-Path $env:RUNNER_TEMP 'HanaFX 설치 후 검증'
             $process = Start-Process "$install\HanaFX.exe" -ArgumentList @('--self-test',"`"$out`"",'--live') -Wait -PassThru
@@ -64,12 +64,12 @@ jobs:
           $report | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 $reportPath
           $stage = Join-Path $PWD 'HanaFX/release'
           New-Item -ItemType Directory -Force $stage | Out-Null
-          Copy-Item "$dist\HanaFX_Windows_v1.0.0.zip","$dist\HanaFX_Windows_v1.0.0.zip.sha256","$dist\build-report.json","$dist\publish_release.py" $stage
-          if (Test-Path "$dist\HanaFX_Setup_v1.0.0.exe") { Copy-Item "$dist\HanaFX_Setup_v1.0.0.exe" $stage }
+          Copy-Item "$dist\HanaFX_Windows_v1.0.1.zip","$dist\HanaFX_Windows_v1.0.1.zip.sha256","$dist\build-report.json","$dist\publish_release.py" $stage
+          if (Test-Path "$dist\HanaFX_Setup_v1.0.1.exe") { Copy-Item "$dist\HanaFX_Setup_v1.0.1.exe" $stage }
           Copy-Item 'HanaFX/reports/full-month/live-report.json' "$stage\full-month-live-report.json"
       - uses: actions/upload-artifact@v4
         with:
-          name: HanaFX-Windows-v1.0.0
+          name: HanaFX-Windows-v1.0.1
           path: HanaFX/release/*
           if-no-files-found: error
           retention-days: 30
@@ -80,7 +80,7 @@ jobs:
           name: HanaFX-validation-reports
           path: |
             HanaFX/reports/**
-            HanaFX/dist/windows-v1.0.0/한글 압축 해제 검증/실행 결과/**
+            HanaFX/dist/windows-v1.0.1/한글 압축 해제 검증/실행 결과/**
             HanaFX/build/**/warn-*.txt
           if-no-files-found: ignore
   publish:
@@ -95,7 +95,7 @@ jobs:
           ref: speccompare-download
       - uses: actions/download-artifact@v4
         with:
-          name: HanaFX-Windows-v1.0.0
+          name: HanaFX-Windows-v1.0.1
           path: release-artifacts/HanaFX
       - name: Publish built source's immutable release and verify public downloads
         env:

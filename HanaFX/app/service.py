@@ -11,8 +11,10 @@ def cached_snapshot(db_path,today):
     return Snapshot(today,records,coverage,total=len(required_dates(today)))
 
 
-def collect(db_path,today,cancel=None,force=False,progress=None,updated=None,client_factory=HanaClient):
-    cancel=cancel or threading.Event();planned=required_dates(today);seen=set();fresh=set();completed=0;failure='';is_cancelled=False;errors_in_a_row=0
+def collect(db_path,today,cancel=None,force=False,progress=None,updated=None,client_factory=HanaClient,history=False):
+    # Routine refresh never fills historical gaps or retries past errors.
+    # History is a separate, explicit action; force applies only to that action.
+    cancel=cancel or threading.Event();planned=required_dates(today) if history else [today];seen=set();fresh=set();completed=0;failure='';is_cancelled=False;errors_in_a_row=0
     client=client_factory(cancel=cancel)
     with Database(db_path) as db:
         def snapshot():
@@ -39,13 +41,14 @@ def collect(db_path,today,cancel=None,force=False,progress=None,updated=None,cli
             if progress:progress(completed,len(set(planned)|seen),str(day)+' 확인 완료')
             if updated and (completed<=3 or completed%10==0):updated(snapshot())
         try:
-            # Latest valid first fixing; never rename a prior publication as today's.
-            anchor=None
-            for offset in range(15):
-                day=today-timedelta(days=offset);visit(day)
-                records,_=db.load(today)
-                if day in records:anchor=day;break
-            if anchor and prior_day(anchor):visit(prior_day(anchor))
+            if history:
+                # Explicit history collection may find the latest publication.
+                anchor=None
+                for offset in range(15):
+                    day=today-timedelta(days=offset);visit(day)
+                    records,_=db.load(today)
+                    if day in records:anchor=day;break
+                if anchor and prior_day(anchor):visit(prior_day(anchor))
             for day in planned:visit(day)
         except Cancelled:is_cancelled=True
         except Exception as exc:failure=str(exc)

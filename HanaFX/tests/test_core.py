@@ -67,6 +67,43 @@ class AnalyticsTests(unittest.TestCase):
         delta,percentage=difference(Decimal(110),Decimal(100));self.assertEqual(delta,10);self.assertEqual(percentage,10)
 
 class CollectionTests(unittest.TestCase):
+    def test_quick_refresh_only_today_even_with_missing_and_stale_history(self):
+        with tempfile.TemporaryDirectory() as temp:
+            today=date(2026,10,22);past=date(2025,10,22);path=Path(temp)/'data.db'
+            with Database(path) as db:
+                db.put(fixing(past));db.mark(date(2026,1,2),'error','old error',now_utc()-timedelta(days=60))
+            client=FakeClient(records={today:fixing(today)})
+            result=collect(path,today,client_factory=lambda **kwargs:client)
+            self.assertEqual(client.calls,[today]);self.assertEqual(result.total,1);self.assertEqual(result.done,1)
+            self.assertIn(past,result.records);self.assertEqual(result.fresh,{today})
+            # A new process/reopened database reuses history and only adds a new day.
+            tomorrow=today+timedelta(days=1);client=FakeClient(records={tomorrow:fixing(tomorrow)})
+            result=collect(path,tomorrow,client_factory=lambda **kwargs:client)
+            self.assertEqual(client.calls,[tomorrow]);self.assertIn(today,result.records);self.assertIn(past,result.records)
+    def test_quick_refresh_holiday_does_not_fetch_any_past_dates(self):
+        with tempfile.TemporaryDirectory() as temp:
+            today=date(2026,10,25);friday=date(2026,10,23);path=Path(temp)/'data.db'
+            with Database(path) as db:db.put(fixing(friday))
+            client=FakeClient();result=collect(path,today,client_factory=lambda **kwargs:client)
+            self.assertEqual(client.calls,[today]);self.assertFalse(cards(result)['is_today']);self.assertEqual(cards(result)['current'].day,friday)
+            self.assertEqual(result.coverage[today].status,'no_data')
+    def test_explicit_history_fills_gaps_then_reuses_saved_dates(self):
+        with tempfile.TemporaryDirectory() as temp:
+            today=date(2026,1,2);prior=date(2025,1,2);path=Path(temp)/'data.db'
+            with Database(path) as db:db.put(fixing(today));db.put(fixing(prior))
+            client=FakeClient(records={today:fixing(today)})
+            result=collect(path,today,client_factory=lambda **kwargs:client,history=True)
+            self.assertIn(date(2026,1,1),client.calls);self.assertNotIn(prior,client.calls);self.assertIn(prior,result.records)
+            client=FakeClient(records={today:fixing(today)})
+            collect(path,today,client_factory=lambda **kwargs:client,history=True)
+            self.assertEqual(client.calls,[today])
+    def test_history_force_is_explicit_and_does_not_erase_saved_data(self):
+        with tempfile.TemporaryDirectory() as temp:
+            today=date(2026,1,2);prior=date(2025,1,2);path=Path(temp)/'data.db'
+            with Database(path) as db:db.put(fixing(prior))
+            client=FakeClient(records={today:fixing(today),prior:fixing(prior)})
+            result=collect(path,today,client_factory=lambda **kwargs:client,history=True,force=True)
+            self.assertIn(prior,client.calls);self.assertIn(prior,result.records)
     def test_payload_dates_and_case(self):
         p=payload_for(date(2026,10,22),'tmplnqStrDt');self.assertEqual(p['tmplnqStrDt'],'2026-10-22');self.assertEqual(p['inqStrDt'],'20261022');self.assertEqual(p['curCd'],'USD');self.assertEqual(p['pbldDvCd'],'1');self.assertEqual(p['pbldSqn'],'')
     def test_today_revalidated_history_reused(self):
@@ -79,7 +116,7 @@ class CollectionTests(unittest.TestCase):
             day=date(2026,1,2);event=threading.Event();client=FakeClient(records={day:fixing(day)});path=Path(temp)/'data.db'
             def update(done,total,message):
                 if done==1:event.set()
-            result=collect(path,day,event,progress=update,client_factory=lambda **kwargs:client);self.assertTrue(result.cancelled);self.assertIn(day,result.records);self.assertTrue(client.closed)
+            result=collect(path,day,event,progress=update,client_factory=lambda **kwargs:client,history=True);self.assertTrue(result.cancelled);self.assertIn(day,result.records);self.assertTrue(client.closed)
     def test_offline_cache_preserved_and_error_marked(self):
         class Offline(FakeClient):
             def fetch(self,day):raise AccessRestricted('blocked')
@@ -103,6 +140,23 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(Cancelled):client._wait(1)
 
 class ExportAndGuiTests(unittest.TestCase):
+    def test_refresh_button_and_rollover_only_today_history_button_explicit(self):
+        from PySide6.QtCore import QEventLoop,QTimer
+        with tempfile.TemporaryDirectory() as temp:
+            today=date(2026,10,22);clock=[datetime(2026,10,22,tzinfo=KST)];clients=[]
+            def factory(**kwargs):
+                client=FakeClient(records={clock[0].date():fixing(clock[0].date())});clients.append(client);return client
+            window=Window(Path(temp)/'data.db',clock=lambda:clock[0],auto_start=False,client_factory=factory)
+            def finish_worker():
+                loop=QEventLoop();timer=QTimer();timer.setSingleShot(True);timer.timeout.connect(loop.quit);window.worker.finished.connect(loop.quit);timer.start(5000)
+                if window.worker.isRunning():loop.exec()
+                timer.stop();app.processEvents();self.assertFalse(window.worker.isRunning())
+            window.force.setChecked(True);window.refresh.click();finish_worker()
+            self.assertEqual(clients[-1].calls,[today]);self.assertFalse(window.worker.history);self.assertFalse(window.worker.force)
+            clock[0]=datetime(2026,11,1,tzinfo=KST);window.check_date();finish_worker()
+            self.assertEqual(clients[-1].calls,[date(2026,11,1)]);self.assertIn(today,window.snapshot.records)
+            window.force.setChecked(False);window.history_button.click();finish_worker()
+            self.assertTrue(window.worker.history);self.assertGreater(len(clients[-1].calls),1);window.close()
     def test_excel_sheets_metadata_numeric_format(self):
         with tempfile.TemporaryDirectory() as temp:
             day=date(2026,10,22);snap=Snapshot(day,{day:fixing(day)});target=Path(temp)/'환율.xlsx';export_snapshot(snap,target)

@@ -20,11 +20,11 @@ def number(value,signed=False):
 
 class Collector(QThread):
     progress=Signal(int,int,str);updated=Signal(object);result=Signal(object)
-    def __init__(self,path,today,force=False,client_factory=None):
-        super().__init__();self.path=path;self.today=today;self.force=force;self.cancel=threading.Event();self.client_factory=client_factory
+    def __init__(self,path,today,force=False,client_factory=None,history=False):
+        super().__init__();self.path=path;self.today=today;self.force=force;self.history=history;self.cancel=threading.Event();self.client_factory=client_factory
     def run(self):
         options={'client_factory':self.client_factory} if self.client_factory else {}
-        result=collect(self.path,self.today,self.cancel,self.force,self.progress.emit,self.updated.emit,**options);self.result.emit(result)
+        result=collect(self.path,self.today,self.cancel,self.force,self.progress.emit,self.updated.emit,history=self.history,**options);self.result.emit(result)
 
 
 class RateChart(QChartView):
@@ -67,9 +67,10 @@ class Window(QMainWindow):
         central=QWidget();self.setCentralWidget(central);outer=QVBoxLayout(central)
         self.heading=QLabel();self.heading.setStyleSheet('font-size:24px;font-weight:700;color:#123F46');outer.addWidget(self.heading)
         actions=QHBoxLayout();outer.addLayout(actions)
-        self.refresh=QPushButton('조회 · 최신 데이터 갱신');self.refresh.clicked.connect(self.start_refresh);actions.addWidget(self.refresh)
+        self.refresh=QPushButton('오늘 환율만 갱신');self.refresh.clicked.connect(self.start_refresh);actions.addWidget(self.refresh)
+        self.history_button=QPushButton('과거 누락 자료 받기');self.history_button.clicked.connect(self.start_history);actions.addWidget(self.history_button)
         self.cancel_button=QPushButton('수집 취소');self.cancel_button.clicked.connect(self.cancel);self.cancel_button.setEnabled(False);actions.addWidget(self.cancel_button)
-        self.force=QCheckBox('과거 자료도 재확인 (최초 수준의 요청·시간 필요)');actions.addWidget(self.force)
+        self.force=QCheckBox('과거 수집 시 저장된 자료도 재조회');self.force.setToolTip('과거 누락 자료 받기 버튼에만 적용됩니다. 오늘 갱신에는 적용하지 않습니다.');actions.addWidget(self.force)
         self.export_button=QPushButton('Excel 저장');self.export_button.clicked.connect(self.save);actions.addWidget(self.export_button)
         self.progress=QProgressBar();outer.addWidget(self.progress)
         self.status=QLabel('저장된 데이터 확인 중');self.status.setWordWrap(True);outer.addWidget(self.status)
@@ -90,14 +91,18 @@ class Window(QMainWindow):
         table=QTableWidget();table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers);table.setMinimumHeight(250);table.setMaximumHeight(360);table.verticalHeader().setVisible(False);return table
     def load_cache(self):
         try:
-            self.apply_snapshot(cached_snapshot(self.db_path,self.effective_day));self.status.setText('저장된 데이터 표시 · 최초 수집은 수 분 이상 걸릴 수 있습니다. 진행 중 취소할 수 있습니다.')
+            self.apply_snapshot(cached_snapshot(self.db_path,self.effective_day));self.status.setText('저장된 데이터 표시 · 자동 조회는 오늘만 갱신합니다. 과거 미수집 자료는 과거 누락 자료 받기를 이용하세요.')
         except Exception as exc:self.status.setText('로컬 DB를 읽지 못했습니다: '+str(exc))
     def start_refresh(self):
+        self.start_collection(history=False)
+    def start_history(self):
+        self.start_collection(history=True)
+    def start_collection(self,history=False):
         if self.worker and self.worker.isRunning():return
         self.check_date(start=False)
-        self.worker=Collector(self.db_path,self.effective_day,self.force.isChecked(),self.client_factory)
+        self.worker=Collector(self.db_path,self.effective_day,history and self.force.isChecked(),self.client_factory,history=history)
         self.worker.progress.connect(self.on_progress);self.worker.updated.connect(self.apply_snapshot);self.worker.result.connect(self.completed);self.worker.finished.connect(self.finished)
-        self.refresh.setEnabled(False);self.force.setEnabled(False);self.cancel_button.setEnabled(True);self.status.setText('공식 사이트 정책·세션 확인 중 · 요청 간격 최소 1.2초, 처음에는 수 분 이상 걸립니다.');self.worker.start()
+        self.refresh.setEnabled(False);self.history_button.setEnabled(False);self.force.setEnabled(False);self.cancel_button.setEnabled(True);self.status.setText('과거 누락 자료 수집 중 · 저장값 재사용 · 처음에는 수 분 이상 걸릴 수 있습니다.' if history else '오늘 환율만 조회 중 · 과거 데이터는 저장된 값을 사용합니다.');self.worker.start()
     def on_progress(self,done,total,message):
         if self.worker.today!=self.effective_day:return
         self.progress.setRange(0,max(1,total));self.progress.setValue(done);self.status.setText(f'{message} · {done}/{total} · 새 조회와 저장된 자료를 함께 표시합니다.')
@@ -112,9 +117,10 @@ class Window(QMainWindow):
             wanted=required_dates(snapshot.asof)
             failed=sum(snapshot.coverage[d].status=='error' for d in wanted if d in snapshot.coverage)
             pending=sum(d not in snapshot.coverage for d in wanted)
-            self.status.setText(f'조회 종료 · 새 검증 {len(snapshot.fresh)}일 · 저장된 자료 포함 · 오류 {failed}일 / 미수집 {pending}일 · {snapshot.retrieved_at.astimezone(KST).isoformat(timespec="seconds")}')
+            mode='과거 수집 종료' if self.worker and self.worker.history else '오늘 조회 종료 · 과거 누락 자료는 별도 버튼으로 받으세요'
+            self.status.setText(f'{mode} · 새 검증 {len(snapshot.fresh)}일 · 저장된 자료 포함 · 오류 {failed}일 / 미수집 {pending}일 · {snapshot.retrieved_at.astimezone(KST).isoformat(timespec="seconds")}')
     def finished(self):
-        self.refresh.setEnabled(True);self.force.setEnabled(True);self.cancel_button.setEnabled(False)
+        self.refresh.setEnabled(True);self.history_button.setEnabled(True);self.force.setEnabled(True);self.cancel_button.setEnabled(False)
         if self.closing:self.close();return
         if self.pending_refresh:self.pending_refresh=False;QTimer.singleShot(0,self.start_refresh)
     def check_date(self,start=True):

@@ -1,9 +1,9 @@
-#define AppVersion "1.0.0"
+#define AppVersion "1.0.1"
 #ifndef AppSource
-#define AppSource "dist\windows-v1.0.0\HanaFX"
+#define AppSource "dist\windows-v1.0.1\HanaFX"
 #endif
 #ifndef InstallerOutput
-#define InstallerOutput "dist\windows-v1.0.0"
+#define InstallerOutput "dist\windows-v1.0.1"
 #endif
 [Setup]
 AppId={{DEAC245F-4F33-4795-86AA-65AE085AD3C2}
@@ -16,7 +16,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#InstallerOutput}
-OutputBaseFilename=HanaFX_Setup_v1.0.0
+OutputBaseFilename=HanaFX_Setup_v1.0.1
 WizardStyle=modern
 Compression=lzma2
 SolidCompression=yes
