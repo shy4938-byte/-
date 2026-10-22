@@ -1,3 +1,7 @@
+# HanaFX 환율 대시보드
+
+[Windows 다운로드·사용 방법](HanaFX/README.md) · [테스트 보고서](HanaFX/TEST_REPORT.md)
+
 # SpecCompare Windows 배포
 
 [Windows 다운로드·실행 안내](README_WINDOWS.md) · [GitHub Actions](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)

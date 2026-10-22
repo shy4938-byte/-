@@ -1,0 +1,104 @@
+name: Build and publish HanaFX Windows
+on:
+  workflow_dispatch:
+  push:
+    branches: [speccompare-download]
+    paths: ['HanaFX/app/**','HanaFX/tests/**','HanaFX/launcher.py','HanaFX/requirements.txt','HanaFX/build_windows.py','HanaFX/installer.iss','HanaFX/publish_release.py','HanaFX/live_check.py','.github/workflows/build-hanafx.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hanafx-windows-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: '1'
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: HanaFX/requirements.txt
+      - name: Install HanaFX dependencies only
+        working-directory: HanaFX
+        run: python -m pip install -r requirements.txt
+      - name: Sample, captured, calculation, cache and GUI tests
+        working-directory: HanaFX
+        run: |
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Real official bank query and complete January mean verification
+        working-directory: HanaFX
+        run: python live_check.py reports/full-month
+      - name: Build and verify extracted EXE with real bank, refresh worker and Excel
+        working-directory: HanaFX
+        run: python build_windows.py
+      - name: Optional installer and installed executable check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $PWD 'HanaFX/dist/windows-v1.0.0'
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $reportPath = Join-Path $dist 'build-report.json'
+          $report = Get-Content -Raw $reportPath | ConvertFrom-Json
+          if ($iscc) {
+            & $iscc "/DAppSource=$dist\HanaFX" "/DInstallerOutput=$dist" HanaFX/installer.iss
+            if ($LASTEXITCODE -ne 0) { throw 'Inno compilation failed' }
+            $install = Join-Path $env:RUNNER_TEMP '설치 검증\HanaFX'
+            $process = Start-Process "$dist\HanaFX_Setup_v1.0.0.exe" -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=`"$install`"") -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw 'Installation failed' }
+            $out = Join-Path $env:RUNNER_TEMP 'HanaFX 설치 후 검증'
+            $process = Start-Process "$install\HanaFX.exe" -ArgumentList @('--self-test',"`"$out`"",'--live') -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw 'Installed EXE verification failed' }
+            $verified = Get-Content -Raw "$out\self-test.json" | ConvertFrom-Json
+            if ($verified.status -ne 'passed' -or $verified.live.status -ne 'passed') { throw 'Installed runtime report failed' }
+            $report.installer = 'Inno Setup built, installed, real bank runtime passed'
+          } else { $report.installer = 'Not built; portable ZIP verified' }
+          $report | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 $reportPath
+          $stage = Join-Path $PWD 'HanaFX/release'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item "$dist\HanaFX_Windows_v1.0.0.zip","$dist\HanaFX_Windows_v1.0.0.zip.sha256","$dist\build-report.json","$dist\publish_release.py" $stage
+          if (Test-Path "$dist\HanaFX_Setup_v1.0.0.exe") { Copy-Item "$dist\HanaFX_Setup_v1.0.0.exe" $stage }
+          Copy-Item 'HanaFX/reports/full-month/live-report.json' "$stage\full-month-live-report.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HanaFX-Windows-v1.0.0
+          path: HanaFX/release/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve reports and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HanaFX-validation-reports
+          path: |
+            HanaFX/reports/**
+            HanaFX/dist/windows-v1.0.0/한글 압축 해제 검증/실행 결과/**
+            HanaFX/build/**/warn-*.txt
+          if-no-files-found: ignore
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: speccompare-download
+      - uses: actions/download-artifact@v4
+        with:
+          name: HanaFX-Windows-v1.0.0
+          path: release-artifacts/HanaFX
+      - name: Publish built source's immutable release and verify public downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python release-artifacts/HanaFX/publish_release.py
