@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-10-22T16:57:17.519013+09:00",
+  "observed_at": "2026-10-22T17:08:11.884001+09:00",
   "source": "https://www.kebhana.com/cms/rate/wpfxd651_01i_01.do",
   "status": "http_probe_completed",
   "samples": [
@@ -16,7 +16,8 @@
             "<tr>\n<td class=\"tc\">\n<a href=\"#//HanaBank\" onclick=\"pbk.foreign.rate.pbld.prs.goFluctuation('USD','20261022');\" title=\"미국 USD 일일변동내역 보기\">\n<u>\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t미국 USD\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t</u>\n</a>\n</td>\n<td class=\"txtAr\">1,348.69</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,302.31</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,338.40</td>\n<td class=\"txtAr\">1,312.60</td>\n<td class=\"txtAr\">1,310.48</td>\n<td class=\"txtAr\">1,325.50</td>\n<td class=\"txtAr\">5.78492</td>\n<td class=\"txtAr\">1.0000</td>\n</tr>"
           ]
         }
-      ]
+      ],
+      "observed_at": "2026-10-22T16:57:17.519013+09:00"
     },
     {
       "requested": "2025-10-22",
@@ -29,6 +30,39 @@
           "thead": "<thead>\n<tr>\n<th class=\"leftNone\" rowspan=\"3\" scope=\"col\">통화</th>\n<th class=\"leftLine\" colspan=\"4\" scope=\"col\">현찰</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">송금</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">외화<br/>수표<br/>파실때</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">매매<br/>기준율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">환가<br/>료율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">미화<br/>환산율</th>\n</tr>\n<tr>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">사실 때</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">파실 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">보낼 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">받을 때</th>\n</tr>\n<tr>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n</tr>\n</thead>",
           "usd_rows": [
             "<tr>\n<td class=\"tc\">\n<a href=\"#//HanaBank\" onclick=\"pbk.foreign.rate.pbld.prs.goFluctuation('USD','20251022');\" title=\"미국 USD 일일변동내역 보기\">\n<u>\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t미국 USD\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t</u>\n</a>\n</td>\n<td class=\"txtAr\">1,448.61</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,398.79</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,437.60</td>\n<td class=\"txtAr\">1,409.80</td>\n<td class=\"txtAr\">1,407.49</td>\n<td class=\"txtAr\">1,423.70</td>\n<td class=\"txtAr\">5.85162</td>\n<td class=\"txtAr\">1.0000</td>\n</tr>"
+          ]
+        }
+      ],
+      "observed_at": "2026-10-22T16:57:17.519013+09:00"
+    },
+    {
+      "observed_at": "2026-10-22T17:08:11.884001+09:00",
+      "requested": "2026-10-18",
+      "http_status": 200,
+      "sha256": "317340af8143a112a6ef80ca2b5bc6bf08b4b29958eb924e9326ea84bcf0d92e",
+      "bytes": 3611,
+      "metadata": "기준일 : 2026년10월16일 고시일시 : 2026년10월16일 08시24분21초 (1회차) 조회시각 : 2026년10월22일 17시08분18초",
+      "tables": [
+        {
+          "thead": "<thead>\n<tr>\n<th class=\"leftNone\" rowspan=\"3\" scope=\"col\">통화</th>\n<th class=\"leftLine\" colspan=\"4\" scope=\"col\">현찰</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">송금</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">외화<br/>수표<br/>파실때</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">매매<br/>기준율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">환가<br/>료율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">미화<br/>환산율</th>\n</tr>\n<tr>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">사실 때</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">파실 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">보낼 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">받을 때</th>\n</tr>\n<tr>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n</tr>\n</thead>",
+          "usd_rows": [
+            "<tr>\n<td class=\"tc\">\n<a href=\"#//HanaBank\" onclick=\"pbk.foreign.rate.pbld.prs.goFluctuation('USD','20261016');\" title=\"미국 USD 일일변동내역 보기\">\n<u>\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t미국 USD\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t</u>\n</a>\n</td>\n<td class=\"txtAr\">1,372.09</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,324.91</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,361.70</td>\n<td class=\"txtAr\">1,335.30</td>\n<td class=\"txtAr\">1,333.13</td>\n<td class=\"txtAr\">1,348.50</td>\n<td class=\"txtAr\">5.82183</td>\n<td class=\"txtAr\">1.0000</td>\n</tr>"
+          ]
+        }
+      ]
+    },
+    {
+      "observed_at": "2026-10-22T17:08:11.884001+09:00",
+      "requested": "2026-01-01",
+      "http_status": 200,
+      "sha256": "f94719ff296f206066560dfa07d7e6d7cfa9760e60fdb5b93efa8b0bda36ac25",
+      "bytes": 3611,
+      "metadata": "기준일 : 2025년12월31일 고시일시 : 2025년12월31일 08시24분31초 (1회차) 조회시각 : 2026년10월22일 17시08분21초",
+      "tables": [
+        {
+          "thead": "<thead>\n<tr>\n<th class=\"leftNone\" rowspan=\"3\" scope=\"col\">통화</th>\n<th class=\"leftLine\" colspan=\"4\" scope=\"col\">현찰</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">송금</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">외화<br/>수표<br/>파실때</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">매매<br/>기준율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">환가<br/>료율</th>\n<th class=\"leftLine\" rowspan=\"3\" scope=\"col\">미화<br/>환산율</th>\n</tr>\n<tr>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">사실 때</th>\n<th class=\"leftLine\" colspan=\"2\" scope=\"col\">파실 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">보낼 때</th>\n<th class=\"leftLine\" rowspan=\"2\" scope=\"col\">받을 때</th>\n</tr>\n<tr>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n<th class=\"leftLine\" scope=\"col\">환율</th>\n<th class=\"leftLine\" scope=\"col\">Spread</th>\n</tr>\n</thead>",
+          "usd_rows": [
+            "<tr>\n<td class=\"tc\">\n<a href=\"#//HanaBank\" onclick=\"pbk.foreign.rate.pbld.prs.goFluctuation('USD','20251231');\" title=\"미국 USD 일일변동내역 보기\">\n<u>\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t미국 USD\r\n\t\t\t\t\t\t\t\r\n\t\t\t\t\t\t\t</u>\n</a>\n</td>\n<td class=\"txtAr\">1,460.01</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,409.79</td>\n<td class=\"txtAr\">1.75</td>\n<td class=\"txtAr\">1,448.90</td>\n<td class=\"txtAr\">1,420.90</td>\n<td class=\"txtAr\">1,418.69</td>\n<td class=\"txtAr\">1,434.90</td>\n<td class=\"txtAr\">5.54951</td>\n<td class=\"txtAr\">1.0000</td>\n</tr>"
           ]
         }
       ]
