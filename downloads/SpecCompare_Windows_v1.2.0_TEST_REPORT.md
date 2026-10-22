@@ -19,3 +19,11 @@
 미검증: 실제 Ollama 모델의 사용자 문서 해석 정확도·속도, 사용자 PC의 모델 설치/다운로드/하드웨어 성능, 모든 PDF 양식, 실제 VGA 문서, 한국어 OCR 정확도, 일반 사용자 Windows/SmartScreen 및 Microsoft Excel UI.
 
 API 요금은 없지만 하드웨어에 따라 처리 속도와 정확도에 제약이 있습니다. 모든 문서를 완벽하게 처리한다고 보장하지 않습니다.
+
+최종 로컬 회귀: 실제 PDF 6종을 포함해 46개 테스트 모두 통과(46 tests, 36초대). 실제 LLM 추론 테스트가 아니라 규칙·OCR·근거 검증·합성 계약 테스트의 합계입니다.
+
+Windows Actions: https://github.com/shy4938-byte/-/actions/runs/39731236561
+
+배포 완료: Windows 빌드·ZIP 압축 해제 후 실행·설치형 EXE 실제 설치 및 자체 검사·게시 모두 통과. 공개 ZIP·설치형 EXE 직접 다운로드 확인. ZIP CRC/SHA-256, AMD64 PE, 내장 OCR 언어 데이터 및 원본 템플릿 해시 확인 통과.
+
+ZIP SHA-256: `0ebe3a72e367a1154a178e74ebb228018884e113da3dd0d2ea2d3e68b9c17429`.
