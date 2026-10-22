@@ -12,6 +12,10 @@ ENDPOINT=BASE+'/cms/rate/wpfxd651_01i_01.do'
 
 def probe(output):
     result={'observed_at':datetime.now(ZoneInfo('Asia/Seoul')).isoformat(),'source':ENDPOINT,'status':'unverified','samples':[]}
+    target=Path(output)
+    if target.exists():
+        previous=json.loads(target.read_text(encoding='utf-8'))
+        result['samples']=[{**sample,'observed_at':sample.get('observed_at',previous.get('observed_at'))} for sample in previous.get('samples',[]) if sample.get('requested') not in ['2026-10-18','2026-01-01']]
     session=requests.Session();session.headers.update({'User-Agent':'HanaFX/1.0 (personal first-publication FX dashboard)','Referer':PAGE})
     try:
         robots=session.get(BASE+'/robots.txt',timeout=(8,20),allow_redirects=False)
@@ -29,11 +33,11 @@ def probe(output):
         field=candidates[0] if candidates else 'tmpInqStrDt'
         result['date_field']=field;result['date_fields_found']=candidates
         result['terms_links']=[{'text':a.get_text(' ',strip=True),'href':a.get('href')} for a in soup.select('a[href]') if any(v in a.get_text() for v in ['이용약관','이용조건','저작권'])][:10]
-        for day in ['2026-10-22','2025-10-22']:
+        for day in ['2026-10-18','2026-01-01']:
             time.sleep(1.2);parsed=date.fromisoformat(day)
             payload={'ajax':'true','curCd':'USD',field:day,'pbldDvCd':'1','pbldSqn':'','hid_key_data':'','inqStrDt':parsed.strftime('%Y%m%d'),'inqKindCd':'1','hid_enc_data':'','requestTarget':'searchContentDiv'}
             response=session.post(ENDPOINT,data=payload,headers={'X-Requested-With':'XMLHttpRequest'},timeout=(8,20),allow_redirects=False)
-            sample={'requested':day,'http_status':response.status_code,'sha256':hashlib.sha256(response.content).hexdigest(),'bytes':len(response.content)}
+            sample={'observed_at':result['observed_at'],'requested':day,'http_status':response.status_code,'sha256':hashlib.sha256(response.content).hexdigest(),'bytes':len(response.content)}
             html=BeautifulSoup(response.content,'html.parser');meta=html.select_one('.txtRateBox');sample['metadata']=meta.get_text(' ',strip=True) if meta else None
             sample['tables']=[]
             for table in html.find_all('table'):
