@@ -2,7 +2,7 @@
 
 [Windows 다운로드·실행 안내](README_WINDOWS.md) · [GitHub Actions](https://github.com/shy4938-byte/-/actions/workflows/build-speccompare.yml)
 
-Windows 네이티브 빌드와 실행 검증이 성공한 파일만 자동 게시합니다. 실제 ZIP 위치와 해시는 배포 작업이 생성하는 downloads/SpecCompare_Windows_v1.0.2.json에서 확인할 수 있습니다.
+Windows 네이티브 빌드와 실행 검증이 성공한 파일만 자동 게시합니다. 실제 ZIP 위치와 해시는 배포 작업이 생성하는 downloads/SpecCompare_Windows_v1.1.0.json에서 확인할 수 있습니다.
 
 # 설치 없이 여는 HTML 버전
 

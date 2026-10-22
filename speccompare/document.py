@@ -70,7 +70,7 @@ def layout_lines(words):
     return sorted(lines,key=lambda l:l.y)
 
 
-def read_document(path):
+def read_document(path,ocr=False):
     path=Path(path).resolve()
     pages,tables,warnings=[],[],[]
     try:
@@ -79,7 +79,17 @@ def read_document(path):
                 raise AnalysisError('암호화 PDF입니다. 암호를 해제한 파일을 사용하세요.')
             for number,page in enumerate(pdf,1):
                 text=page.get_text(sort=True)
-                pages.append(Page(number,text,layout_lines(page.get_text('words'))))
+                words=page.get_text('words')
+                if ocr and len(re.sub(r'\W','',text))<30:
+                    from .resources import ROOT
+                    data=ROOT/'assets'/'ocr'
+                    try:
+                        tp=page.get_textpage_ocr(language='eng+kor',dpi=200,full=True,tessdata=str(data))
+                        text=page.get_text(textpage=tp,sort=True);words=page.get_text('words',textpage=tp)
+                        warnings.append(f'p.{number}: 내장 OCR로 읽었습니다. 숫자·단위를 원본 이미지와 대조하세요.')
+                    except Exception as exc:
+                        raise AnalysisError(f'p.{number}: OCR에 실패했습니다. OCR 언어 파일·페이지 상태를 확인하세요.') from exc
+                pages.append(Page(number,text,layout_lines(words)))
                 if not text.strip():
                     warnings.append(f'p.{number}: 텍스트가 없어 분석하지 못했습니다. 스캔 페이지는 OCR이 필요합니다.')
         if not any(p.text.strip() for p in pages):

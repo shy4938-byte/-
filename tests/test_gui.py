@@ -55,7 +55,7 @@ class Gui(unittest.TestCase):
         import time
         with tempfile.TemporaryDirectory() as directory:
             paths=create_fixtures(Path(directory)/'샘플')
-            window=Window(); window.add_paths([str(paths['SSD'])])
+            window=Window(); window.mode.setCurrentIndex(1); window.add_paths([str(paths['SSD'])])
             self.assertEqual(window.category,'MEMORY')
             window.run_analysis()
             deadline=time.monotonic()+20
@@ -85,3 +85,29 @@ class Gui(unittest.TestCase):
                 app.processEvents();time.sleep(.01)
             worker.wait(20000)
             products,errors=spy.at(0);self.assertEqual(products,[]);self.assertIn('제품군',errors[-1])
+
+    def test_ai_shared_values_visible_and_exported_separately(self):
+        from unittest.mock import patch
+        window=Window();window.mode.setCurrentIndex(1)
+        p=Product('test.pdf','MEMORY',{k:Value('확인 필요') for k in FIELDS['MEMORY']})
+        p.values['모델명']=Value('AI-MODEL',1,'AI-MODEL','AI 추출 · 검토 필요')
+        p.shared['동작속도 · 제품군 공통 최대']=Value('6000 MT/s',1,'up to 6000 MT/s',scope='family_max')
+        window.products=[p];window.rebuild_groups()
+        self.assertIn('6000 MT/s',window.shared_detail.toPlainText())
+        self.assertEqual(window.table.item(FIELDS['MEMORY'].index('동작속도'),1).text(),'확인 필요')
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'비교.xlsx'
+            with patch('speccompare.gui.QFileDialog.getSaveFileName',return_value=(str(path),'')),patch.object(window,'message'):
+                window.save()
+            self.assertTrue(path.exists());self.assertTrue(path.with_name('비교_분석근거.xlsx').exists())
+        window.close()
+
+    def test_ai_worker_failure_does_not_call_rule_fallback(self):
+        from unittest.mock import patch
+        from speccompare.ai import AIConfig,AnalysisError
+        import time
+        with patch('speccompare.ai.analyze_ai',side_effect=AnalysisError('AI unavailable')),patch('speccompare.gui.analyze') as rules:
+            worker=Worker(['test.pdf'],'SSD',AIConfig());spy=QSignalSpy(worker.result);worker.start();deadline=time.monotonic()+5
+            while not spy.count() and time.monotonic()<deadline:app.processEvents();time.sleep(.01)
+            worker.wait(5000);products,errors=spy.at(0)
+            self.assertEqual(products,[]);self.assertIn('AI unavailable',errors[0]);rules.assert_not_called()

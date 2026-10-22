@@ -83,12 +83,14 @@ def verify_suite(output_folder):
             cell=wb['SSD'].cell(r,i)
             if cell.value!=p.values[key].text or cell.alignment.horizontal!='center':raise RuntimeError('Capacity Excel mismatch')
     wb.close()
+    from .ai_verification import verify_ai_contract
+    ai_report=verify_ai_contract(output/'AI OCR 검증')
     bundled=bool(getattr(sys,'frozen',False))
     if bundled:
         root=Path(sys.executable).resolve().parent
         for module_name in ['PySide6','fitz','pdfplumber','openpyxl']:
             module=__import__(module_name);module_path=Path(module.__file__).resolve()
             if not module_path.is_relative_to(root):raise RuntimeError('External dependency: '+module_name)
-    report={'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','ssd_on_memory_tab':'passed','capacity_columns_and_qd':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
+    report={'ai':ai_report,'status':'passed','frozen':bundled,'platform':sys.platform,'checks':checks,'multiple_pdf':'passed','ssd_on_memory_tab':'passed','capacity_columns_and_qd':'passed','template_sha256':hashlib.sha256(template_path().read_bytes()).hexdigest(),'executable':str(Path(sys.executable).resolve()),'test_scope':'synthetic runtime + GUI edit + worker + Excel; no claim of clean-PC/SmartScreen verification'}
     (output/'self-test.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');window.close()
     return report

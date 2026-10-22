@@ -48,3 +48,20 @@ class RealDocuments(unittest.TestCase):
                 self.assertEqual(p.values[key].page,3)
                 self.assertTrue(p.values[key].evidence)
             self.assertEqual(p.values['가격'].text,'확인 필요')
+
+    @unittest.skipUnless(os.environ.get('SPECCOMPARE_TRANSCEND_PDF'),'Real Transcend PDF not supplied')
+    def test_transcend_reference_evidence_scope_not_live_ai(self):
+        # Curated reference payload tests source validation/scope only, not AI accuracy.
+        from speccompare.ai import decode
+        from speccompare.document import read_document
+        doc=read_document(os.environ['SPECCOMPARE_TRANSCEND_PDF'])
+        models=[]
+        for cap,code in [('250GB','TS250GMTE245S'),('500GB','TS500GMTE245S'),('1TB','TS1TMTE245S'),('2TB','TS2TMTE245S'),('4TB','TS4TMTE245S')]:
+            models.append(dict(id=code,name=code,category='SSD',page=2,quote=code,fields=[dict(key='용량',value=cap,scope='model',page=2,quote=cap,link_page=2,link_quote=code,conditions='',model_ids=[code])]))
+        shared=[]
+        for key,value,quote in [('순차읽기 속도','5,300 MB/s','Read: Up to 5,300 MB/s'),('순차쓰기 속도','4,600 MB/s','Write: Up to 4,600 MB/s'),('랜덤읽기 속도','500,000 IOPS','Read: Up to 500,000 IOPS'),('랜덤쓰기 속도','630,000 IOPS','Write: Up to 630,000 IOPS'),('내구성','2400 TBW','Up to 2400 TBW')]:
+            shared.append(dict(key=key,value=value,quote=quote,scope='family_max',page=2,link_page=2,link_quote=quote,conditions='',model_ids=[m['id'] for m in models]))
+        ps=decode(doc,[dict(models=models,shared=shared)]);self.assertEqual(len(ps),5)
+        for p in ps:
+            self.assertEqual(p.values['순차읽기 속도'].text,'확인 필요');self.assertEqual(p.values['내구성'].text,'확인 필요')
+            self.assertEqual(len(p.shared),5)

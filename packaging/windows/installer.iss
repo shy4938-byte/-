@@ -1,9 +1,9 @@
-#define AppVersion "1.0.2"
+#define AppVersion "1.1.0"
 #ifndef AppSource
-#define AppSource "..\..\dist\windows-v1.0.2\SpecCompare"
+#define AppSource "..\..\dist\windows-v1.1.0\SpecCompare"
 #endif
 #ifndef InstallerOutput
-#define InstallerOutput "..\..\dist\windows-v1.0.2"
+#define InstallerOutput "..\..\dist\windows-v1.1.0"
 #endif
 [Setup]
 AppId={{BD5BB7FE-819A-4EA7-B333-B74C963D6C2F}
@@ -16,7 +16,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#InstallerOutput}
-OutputBaseFilename=SpecCompare_Setup_v1.0.2
+OutputBaseFilename=SpecCompare_Setup_v1.1.0
 SetupIconFile=..\..\assets\icon.ico
 WizardStyle=modern
 Compression=lzma2

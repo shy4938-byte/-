@@ -121,3 +121,33 @@ def export(template, destination, category, products):
         os.replace(temporary,destination)
     finally:
         if temporary and os.path.exists(temporary): os.unlink(temporary)
+
+
+def export_evidence(destination,products):
+    """Separate audit workbook: keep original comparison template untouched."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment,Font
+    wb=Workbook();ws=wb.active;ws.title='모델별 근거'
+    headers=['제품','제품군','항목','값','적용 범위','상태','PDF 페이지','측정 조건','원문 근거','PDF 파일']
+    ws.append(headers);shared=wb.create_sheet('제품군 공통·미확정');shared.append(headers)
+    for p in products:
+        for sheet,values in [(ws,p.values),(shared,p.shared)]:
+            for key,value in values.items():
+                sheet.append([p.name,p.category,key,value.text,value.scope,value.status,value.page,value.conditions,value.evidence,p.source])
+    for sheet in wb:
+        sheet.freeze_panes='A2';sheet.auto_filter.ref=sheet.dimensions
+        for row in sheet:
+            for cell in row:
+                # Untrusted PDF/AI strings must never become spreadsheet formulas.
+                if isinstance(cell.value,str):cell.data_type='s'
+                cell.alignment=Alignment(horizontal='center',vertical='center',wrap_text=True)
+        for cell in sheet[1]:cell.font=Font(bold=True)
+        from openpyxl.utils import get_column_letter
+        for i,width in enumerate([32,12,30,28,22,28,12,36,80,55],1):sheet.column_dimensions[get_column_letter(i)].width=width
+    temporary=None
+    try:
+        with tempfile.NamedTemporaryFile(dir=Path(destination).parent,suffix='.xlsx',delete=False) as f:temporary=f.name
+        wb.save(temporary);os.replace(temporary,destination);temporary=None
+    finally:
+        wb.close()
+        if temporary and Path(temporary).exists():Path(temporary).unlink()

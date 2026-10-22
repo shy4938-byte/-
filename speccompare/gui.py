@@ -3,23 +3,27 @@ from pathlib import Path
 from datetime import datetime
 from PySide6.QtCore import Qt, QThread, Signal, QUrl
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
-from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QTabBar,QPushButton,QListWidget,QAbstractItemView,QTableWidget,QTableWidgetItem,QProgressBar,QLabel,QFileDialog,QMessageBox,QInputDialog,QTextEdit,QDialog)
+from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QTabBar,QPushButton,QListWidget,QAbstractItemView,QTableWidget,QTableWidgetItem,QProgressBar,QLabel,QFileDialog,QMessageBox,QInputDialog,QTextEdit,QDialog,QComboBox)
 from .schema import FIELDS
 from .parser import analyze
-from .excel import export
+from .excel import export, export_evidence
 from .resources import ROOT, template_path
 
 
 class Worker(QThread):
     progress = Signal(int)
     result = Signal(object, object)
-    def __init__(self, paths, category):
-        super().__init__(); self.paths=paths; self.category=category
+    stage = Signal(str)
+    def __init__(self, paths, category, ai_config=None):
+        super().__init__(); self.paths=paths; self.category=category; self.ai_config=ai_config
     def run(self):
         products, errors = [], []
         for i,path in enumerate(self.paths):
             try:
-                result=analyze(path,self.category,auto_detect=True)
+                if self.ai_config:
+                    from .ai import analyze_ai
+                    result=analyze_ai(path,self.category,self.ai_config,self.stage.emit)
+                else:result=analyze(path,self.category,auto_detect=True)
                 usable=[p for p in result if any(p.values[k].text!='확인 필요' for k in FIELDS[p.category])]
                 if not usable: raise ValueError('모델별 사양을 식별하지 못했습니다. 원문 검토가 필요합니다.')
                 products.extend(usable)
@@ -32,9 +36,11 @@ class Worker(QThread):
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle('SpecCompare 1.0.2'); self.resize(1150,800)
+        super().__init__(); self.setWindowTitle('SpecCompare 1.1.0'); self.resize(1150,800)
         self.setWindowIcon(QIcon(str(ROOT/'assets/icon.ico')))
         self.products=[]; self.saved=None; self.worker=None; self.refreshing=False
+        from .ai_settings import load_config
+        self.ai_config=load_config()
         self.setAcceptDrops(True)
         central=QWidget(); self.setCentralWidget(central); layout=QVBoxLayout(central)
         title=QLabel('SpecCompare  |  PC 부품 데이터시트 비교'); title.setStyleSheet('font-size:24px;font-weight:700;padding:14px'); layout.addWidget(title)
@@ -42,6 +48,10 @@ class Window(QMainWindow):
         for name in FIELDS: self.tabs.addTab(name)
         self.tabs.currentChanged.connect(self.category_changed); layout.addWidget(self.tabs)
         layout.addWidget(QLabel('PDF를 끌어 놓거나 추가하세요. 추출값은 원문 검토 후 확인 완료로 표시하세요.'))
+        mode_row=QHBoxLayout();layout.addLayout(mode_row)
+        self.mode=QComboBox();self.mode.addItem('AI 문서 해석 · 다양한 양식',True);self.mode.addItem('빠른 추출 · 기존 규칙 / AI 없이',False);mode_row.addWidget(self.mode)
+        self.ai_button=QPushButton('AI 연결 설정');self.ai_button.clicked.connect(self.ai_settings);mode_row.addWidget(self.ai_button)
+        self.stage_label=QLabel('AI 모드는 최초 연결 설정이 필요합니다. 로컬 AI는 PDF를 외부로 전송하지 않습니다.');self.stage_label.setWordWrap(True);layout.addWidget(self.stage_label)
         self.files=QListWidget(); self.files.setMaximumHeight(130); self.files.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection); layout.addWidget(self.files)
         row=QHBoxLayout(); layout.addLayout(row)
         self.actions=[]
@@ -51,6 +61,7 @@ class Window(QMainWindow):
         self.groups=QTabBar(); self.groups.currentChanged.connect(self.render); layout.addWidget(self.groups)
         self.table=QTableWidget(); self.table.cellChanged.connect(self.edited); self.table.cellClicked.connect(self.evidence); layout.addWidget(self.table,1)
         self.detail=QTextEdit(); self.detail.setReadOnly(True); self.detail.setMaximumHeight(150); layout.addWidget(self.detail)
+        self.shared_detail=QTextEdit();self.shared_detail.setReadOnly(True);self.shared_detail.setMaximumHeight(110);self.shared_detail.setPlaceholderText('제품군 공통 최대값은 이곳에 별도 표시합니다. 모델별 사양·Excel 셀에 자동 복사하지 않습니다.');layout.addWidget(self.shared_detail)
         row=QHBoxLayout(); layout.addLayout(row)
         for label,callback in [('제품 왼쪽 이동',lambda:self.move(-1)),('제품 오른쪽 이동',lambda:self.move(1)),('제품 상세정보',self.show_details),('원문 PDF 열기',self.open_source),('선택값 확인 완료',self.confirm),('엑셀 저장',self.save),('저장 파일 열기',self.open_saved)]:
             button=QPushButton(label); button.clicked.connect(callback); row.addWidget(button)
@@ -76,12 +87,26 @@ class Window(QMainWindow):
     def run_analysis(self):
         if not self.files.count(): return self.message('PDF를 먼저 추가하세요.')
         if self.worker and self.worker.isRunning(): return
-        self.worker=Worker([self.files.item(i).text() for i in range(self.files.count())],self.category)
+        config=self.ai_config if self.mode.currentData() else None
+        if config:
+            try:config.validate()
+            except Exception as exc:return self.message(str(exc))
+        self.worker=Worker([self.files.item(i).text() for i in range(self.files.count())],self.category,config)
+        self.stage_label.setText('AI 문서 해석 중입니다. 페이지 수·PC 성능에 따라 시간이 걸립니다.' if config else 'AI 없이 규칙으로 추출 중입니다. 지원하지 않는 양식은 누락될 수 있습니다.')
+        self.worker.stage.connect(self.stage_label.setText)
+        self.mode.setEnabled(False);self.ai_button.setEnabled(False)
         self.tabs.setEnabled(False);self.table.setEnabled(False)
         for b in self.actions: b.setEnabled(False)
         self.worker.progress.connect(self.progress.setValue); self.worker.result.connect(self.analysis_result); self.worker.finished.connect(self.analysis_finished); self.worker.start()
+    def ai_settings(self):
+        from .ai_settings import AISettingsDialog
+        dialog=AISettingsDialog(self.ai_config,self)
+        if dialog.exec():
+            self.ai_config=dialog.config()
+            self.stage_label.setText('AI 설정을 적용했습니다. '+('로컬에서 처리합니다.' if self.ai_config.provider=='ollama' else '선택 PDF의 글자·이미지를 온라인 AI로 전송합니다.'))
     def analysis_finished(self):
-        self.tabs.setEnabled(True);self.table.setEnabled(True)
+        self.tabs.setEnabled(True);self.table.setEnabled(True);self.mode.setEnabled(True);self.ai_button.setEnabled(True)
+        self.stage_label.setText("분석 작업이 끝났습니다. 원문 근거와 공통 최대값의 적용 범위를 확인하세요.")
         for b in self.actions: b.setEnabled(True)
     def analysis_result(self,products,errors):
         products=[p for p in products if any(p.values[k].text!='확인 필요' for k in FIELDS[p.category])]
@@ -122,9 +147,15 @@ class Window(QMainWindow):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 if c>len(products): item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 else:
-                    value=products[c-1].values[key]; item.setToolTip(value.status)
+                    value=products[c-1].values[key]; item.setToolTip(value.status+'\n'+value.evidence)
                     item.setBackground(QColor('#ffe4df' if value.text=='확인 필요' else '#fff3c4' if different else '#e4f3ee' if value.status=='확인 완료' else '#ffffff'))
                 self.table.setItem(r,c,item)
+        common=[]
+        for p in products:
+            for key,value in p.shared.items():
+                text=f'{key}: {value.text} · p.{value.page}\n{value.evidence}'+('\n측정 조건: '+value.conditions if value.conditions else '')
+                if text not in common:common.append(text)
+        self.shared_detail.setPlainText('\n\n'.join(common))
         self.table.resizeColumnsToContents(); self.table.horizontalHeader().setStretchLastSection(True); self.refreshing=False
     def edited(self,r,c):
         if self.refreshing or c<1 or c>len(self.visible()): return
@@ -135,7 +166,7 @@ class Window(QMainWindow):
     def evidence(self,r,c):
         if not 1<=c<=len(self.visible()): return
         product=self.visible()[c-1]; value=product.values[FIELDS[self.category][r]]
-        self.detail.setPlainText(f'{product.source}\n페이지: {value.page or "없음"} | 상태: {value.status} | 규칙 일치도: {value.confidence:.0%}\n원문 근거: {value.evidence or "없음 — 수동 확인 필요"}\n'+'\n'.join(product.warnings))
+        self.detail.setPlainText(f'{product.source}\n페이지: {value.page or "없음"} | 상태: {value.status} | 적용 범위: {value.scope}\n원문 근거: {value.evidence or "없음 — 수동 확인 필요"}\n'+'\n'.join(product.warnings))
     def confirm(self):
         product,key=self.current()
         if product and product.values[key].text.strip() and product.values[key].text!='확인 필요': product.values[key].status='확인 완료'; self.render()
@@ -160,7 +191,13 @@ class Window(QMainWindow):
         if not destination: return
         if not destination.lower().endswith('.xlsx'): destination+='.xlsx'
         try:
-            export(template_path(),destination,self.category,self.visible()); self.saved=destination; self.message('현재 비교 그룹을 원본 양식으로 저장했습니다.')
+            export(template_path(),destination,self.category,self.visible()); self.saved=destination
+            if any(p.shared or any('AI' in v.status for v in p.values.values()) for p in self.visible()):
+                report=Path(destination).with_name(Path(destination).stem+'_분석근거.xlsx')
+                try:export_evidence(report,self.visible())
+                except Exception as exc:return self.message(f'비교표는 저장했습니다. 추가 근거 파일 저장은 실패했습니다: {exc}')
+                self.message('비교표와 _분석근거.xlsx를 저장했습니다. 공통 최대값은 근거 파일에서 확인하세요.')
+            else:self.message('현재 비교 그룹을 원본 양식으로 저장했습니다.')
         except Exception as exc: self.message(f'저장 실패: {exc}\n파일 잠금과 폴더 쓰기 권한을 확인하세요.')
     def open_saved(self):
         if self.saved and Path(self.saved).exists(): QDesktopServices.openUrl(QUrl.fromLocalFile(self.saved))

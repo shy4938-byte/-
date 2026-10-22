@@ -30,12 +30,15 @@ class Value:
     status: str = '미확인'
     confidence: float = 0.0
     conflict: bool = False
+    scope: str = "model"
+    conditions: str = ""
 @dataclass
 class Product:
     source: str
     category: str
     values: dict[str, Value] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    shared: dict[str, Value] = field(default_factory=dict)
     @property
     def name(self):
         return self.values.get('모델명', Value()).text

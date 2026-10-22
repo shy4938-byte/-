@@ -1,0 +1,5 @@
+Tesseract tessdata_fast English and Korean language data
+Upstream: https://github.com/tesseract-ocr/tessdata_fast
+Files: eng.traineddata, kor.traineddata
+License: Apache License 2.0 (LICENSE in this directory).
+Downloaded 2026-10-22. Included for PyMuPDF integrated OCR; not an AI language model.

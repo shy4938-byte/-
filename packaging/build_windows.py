@@ -11,7 +11,7 @@ import sys
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='1.0.2'
+VERSION='1.1.0'
 def run(command,**kwargs):
     subprocess.run([str(v) for v in command],check=True,**kwargs)
 
@@ -35,6 +35,7 @@ def verify_zip(archive,output):
     run([app,'--self-test',results],cwd=output,env=env,timeout=180)
     report=json.loads((results/'self-test.json').read_text(encoding='utf-8'))
     if report.get('status')!='passed' or not report.get('frozen'):raise RuntimeError('Packaged runtime verification failed')
+    if report.get('ai',{}).get('bundled_ocr')!='passed' or report['ai'].get('family_max_scope')!='passed':raise RuntimeError('AI/OCR runtime contract failed')
     return report
 
 def build():
