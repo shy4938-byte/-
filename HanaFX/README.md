@@ -5,7 +5,9 @@ Windows 10/11 x64용 독립 실행 앱입니다. Python·Node.js·AI 프로그�
 
 ## 다운로드·실행
 
-빌드 성공 뒤 [배포 안내](../downloads/HanaFX_Windows_README.md)에 실제 ZIP/설치파일 URL과 SHA-256이 게시됩니다.
+[Windows ZIP 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.0/HanaFX_Windows_v1.0.0.zip) · [설치형 EXE 다운로드](https://github.com/shy4938-byte/-/releases/download/hanafx-windows-v1.0.0/HanaFX_Setup_v1.0.0.exe)
+
+Windows 빌드·설치·실제 은행 조회를 통과한 v1.0.0입니다. [배포 안내](../downloads/HanaFX_Windows_README.md)에서 SHA-256을 확인할 수 있습니다.
 [Windows Actions](https://github.com/shy4938-byte/-/actions/workflows/build-hanafx.yml)에서 Artifact도 받을 수 있습니다.
 
 1. ZIP 전체 압축 해제 → HanaFX/HanaFX.exe 실행. 또는 제공된 설치형 EXE를 실행합니다.
