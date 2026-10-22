@@ -50,14 +50,14 @@ jobs:
             "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
           )
           $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-          $dist = Join-Path $PWD 'dist/windows-v1.1.2'
+          $dist = Join-Path $PWD 'dist/windows-v1.2.0'
           $reportPath = Join-Path $dist 'build-report.json'
           $report = Get-Content -Raw $reportPath | ConvertFrom-Json
           if ($iscc) {
             & $iscc "/DAppSource=$dist\SpecCompare" "/DInstallerOutput=$dist" packaging/windows/installer.iss
             if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
             $installDir = Join-Path $env:RUNNER_TEMP '설치 검증\SpecCompare'
-            $setup = Join-Path $dist 'SpecCompare_Setup_v1.1.2.exe'
+            $setup = Join-Path $dist 'SpecCompare_Setup_v1.2.0.exe'
             $process = Start-Process $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=`"$installDir`"") -Wait -PassThru
             if ($process.ExitCode -ne 0) { throw 'Installer execution failed' }
             $env:QT_QPA_PLATFORM = 'offscreen'
@@ -72,12 +72,12 @@ jobs:
       - name: Upload verified distribution
         uses: actions/upload-artifact@v4
         with:
-          name: SpecCompare-Windows-v1.1.2
+          name: SpecCompare-Windows-v1.2.0
           path: |
-            dist/windows-v1.1.2/SpecCompare_Windows_v1.1.2.zip
-            dist/windows-v1.1.2/SpecCompare_Windows_v1.1.2.zip.sha256
-            dist/windows-v1.1.2/build-report.json
-            dist/windows-v1.1.2/SpecCompare_Setup_v1.1.2.exe
+            dist/windows-v1.2.0/SpecCompare_Windows_v1.2.0.zip
+            dist/windows-v1.2.0/SpecCompare_Windows_v1.2.0.zip.sha256
+            dist/windows-v1.2.0/build-report.json
+            dist/windows-v1.2.0/SpecCompare_Setup_v1.2.0.exe
           if-no-files-found: error
           retention-days: 14
       - name: Preserve failure diagnostics
@@ -87,9 +87,9 @@ jobs:
           name: SpecCompare-build-diagnostics
           path: |
             build/windows-native/**/warn-*.txt
-            dist/windows-v1.1.2/build-report.json
-            dist/windows-v1.1.2/ZIP 압축 해제 검증/검증 결과/self-test.json
-            dist/windows-v1.1.2/ZIP 압축 해제 검증/검증 결과/self-test-error.txt
+            dist/windows-v1.2.0/build-report.json
+            dist/windows-v1.2.0/ZIP 압축 해제 검증/검증 결과/self-test.json
+            dist/windows-v1.2.0/ZIP 압축 해제 검증/검증 결과/self-test-error.txt
           if-no-files-found: ignore
   publish:
     needs: build
@@ -104,7 +104,7 @@ jobs:
           ref: speccompare-download
       - uses: actions/download-artifact@v4
         with:
-          name: SpecCompare-Windows-v1.1.2
+          name: SpecCompare-Windows-v1.2.0
           path: release-artifacts
       - name: Publish without replacing unrelated files and verify public checksums
         env:

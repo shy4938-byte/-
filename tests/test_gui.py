@@ -111,3 +111,13 @@ class Gui(unittest.TestCase):
             while not spy.count() and time.monotonic()<deadline:app.processEvents();time.sleep(.01)
             worker.wait(5000);products,errors=spy.at(0)
             self.assertEqual(products,[]);self.assertIn('AI unavailable',errors[0]);rules.assert_not_called()
+
+    def test_free_settings_has_no_api_key_or_paid_provider_controls(self):
+        from speccompare.ai_settings import AISettingsDialog
+        from speccompare.ai import AIConfig
+        from PySide6.QtWidgets import QLineEdit
+        dialog=AISettingsDialog(AIConfig())
+        self.assertEqual(dialog.config().provider,'ollama')
+        self.assertFalse(any(w.echoMode()==QLineEdit.EchoMode.Password for w in dialog.findChildren(QLineEdit)))
+        self.assertFalse(hasattr(dialog,'provider'));self.assertFalse(hasattr(dialog,'key'))
+        dialog.close()

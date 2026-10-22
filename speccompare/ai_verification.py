@@ -25,12 +25,12 @@ def verify_ai_contract(folder):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             calls.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
-            raw=json.dumps({'message':{'content':json.dumps(payload)}}).encode();self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+            raw=json.dumps({'capabilities':['vision','completion']} if self.path=='/api/show' else {'message':{'content':json.dumps(payload)}}).encode();self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
         def log_message(self,*args):pass
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
     try:products=analyze_ai(pdf,'SSD',AIConfig(endpoint='http://127.0.0.1:'+str(server.server_port)))
     finally:server.shutdown();server.server_close();thread.join()
-    if len(products)!=2 or len(calls)!=2 or not calls[1]['messages'][1].get('images'):raise RuntimeError('AI contract transport failed')
+    if len(products)!=2 or len(calls)!=3 or not calls[2]['messages'][1].get('images'):raise RuntimeError('AI contract transport failed')
     for p in products:
         if p.values['순차읽기 속도'].text!='확인 필요' or not p.shared:raise RuntimeError('Family maximum leaked into model specification')
     report=folder/'AI 분석근거.xlsx';export_evidence(report,products);wb=load_workbook(report)

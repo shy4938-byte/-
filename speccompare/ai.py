@@ -1,7 +1,7 @@
 """Layout-independent, multimodal extraction with explicit evidence/scope checks.
 
 PDF content is untrusted input. AI output is a candidate, never confirmation.
-Local Ollama is the default; online transmission requires explicit app consent.
+This free build accepts only local Ollama vision models; paid/cloud providers are blocked.
 """
 import base64
 from dataclasses import dataclass
@@ -18,22 +18,19 @@ from .schema import FIELDS, EXTRAS, Product, Value
 @dataclass(frozen=True)
 class AIConfig:
     provider: str = 'ollama'
-    model: str = 'qwen2.5vl:7b'
+    model: str = 'qwen2.5vl:3b'
     endpoint: str = 'http://127.0.0.1:11434'
     api_key: str = ''
     online_consent: bool = False
     timeout: int = 300
 
     def validate(self):
+        if self.provider!='ollama':raise AnalysisError('무료 버전은 이 PC의 로컬 AI만 지원합니다. 유료 온라인 API는 연결하지 않습니다.')
         if not self.model.strip():raise AnalysisError('AI 설정에서 모델 이름을 입력하세요.')
-        if self.provider=='ollama':
-            u=urlparse(self.endpoint)
-            if u.scheme!='http' or u.hostname not in {'127.0.0.1','localhost','::1'} or u.username or u.password or u.query or u.fragment or u.path not in {'','/'}:
-                raise AnalysisError('로컬 AI 주소는 이 PC의 http://127.0.0.1:포트 형식만 지원합니다.')
-        elif self.provider=='openai':
-            if not self.api_key.strip():raise AnalysisError('온라인 AI API 키가 없습니다. AI 설정에서 입력하세요.')
-            if not self.online_consent:raise AnalysisError('PDF 글자·페이지 이미지의 온라인 전송에 먼저 동의하세요.')
-        else:raise AnalysisError('지원하지 않는 AI 제공자입니다.')
+        if 'cloud' in self.model.casefold():raise AnalysisError('클라우드 모델은 사용할 수 없습니다. 이 PC에서 실행하는 무료 비전 모델을 선택하세요.')
+        u=urlparse(self.endpoint)
+        if u.scheme!='http' or u.hostname not in {'127.0.0.1','localhost','::1'} or u.username or u.password or u.query or u.fragment or u.path not in {'','/'}:
+            raise AnalysisError('로컬 AI 주소는 이 PC의 http://127.0.0.1:포트 형식만 지원합니다.')
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -50,7 +47,7 @@ def request_json(url,payload=None,headers=None,timeout=30):
         return json.loads(raw)
     except HTTPError as exc:
         # Never echo provider bodies, Authorization headers or request data.
-        hints={400:'선택 모델의 이미지·JSON 지원 여부를 확인하세요.',401:'API 키를 확인하세요.',403:'접근 권한을 확인하세요.',404:'모델이 없거나 주소가 잘못되었습니다.',429:'요금·사용량 제한을 확인하고 잠시 후 재시도하세요.'}
+        hints={400:'선택 모델의 이미지·JSON 지원 여부를 확인하세요.',401:'이 PC의 Ollama 실행 설정을 확인하세요.',403:'접근 권한을 확인하세요.',404:'모델이 없거나 주소가 잘못되었습니다.',429:'로컬 AI 실행 상태를 확인하고 잠시 후 재시도하세요.'}
         raise AnalysisError(f'AI 연결 오류 HTTP {exc.code}. '+hints.get(exc.code,'AI 서비스 상태를 확인하세요.')) from None
     except (URLError,TimeoutError,OSError):
         raise AnalysisError('AI에 연결하지 못했거나 응답 시간이 초과되었습니다. 로컬 AI 실행·모델 설치 또는 인터넷 연결을 확인하세요.') from None
@@ -79,20 +76,12 @@ Use the provided Korean field keys. Every fact must include its real PDF page nu
 def infer(config,prompt,images=()):
     config.validate()
     if config.provider=='ollama' and len(prompt.encode('utf-8'))>(14000 if images else 18000):
-        raise AnalysisError('로컬 AI의 안전한 문맥 크기를 초과했습니다. 문서를 나누거나 온라인 AI를 선택하세요. 일부 내용을 생략해 분석하지 않습니다.')
-    if config.provider=='ollama':
-        payload={'model':config.model,'stream':False,'format':SCHEMA,'options':{'temperature':0,'num_ctx':32768,'num_predict':8192},
-                 'messages':[{'role':'system','content':INSTRUCTIONS},{'role':'user','content':prompt,'images':list(images)}]}
-        result=request_json(config.endpoint.rstrip('/')+'/api/chat',payload,timeout=config.timeout)
-        if result.get('done_reason')=='length' or result.get('done') is False:raise AnalysisError('AI 출력 한도에 도달했습니다. 문서를 나누어 재시도하세요.')
-        raw=result.get('message',{}).get('content','')
-    else:
-        content=[{'type':'input_text','text':prompt}]+[{'type':'input_image','image_url':'data:image/png;base64,'+v} for v in images]
-        payload={'model':config.model,'instructions':INSTRUCTIONS,'input':[{'role':'user','content':content}],
-                 'text':{'format':{'type':'json_schema','name':'specifications','strict':True,'schema':SCHEMA}},'max_output_tokens':16000,'store':False}
-        result=request_json('https://api.openai.com/v1/responses',payload,{'Authorization':'Bearer '+config.api_key},config.timeout)
-        if result.get('status') not in {None,'completed'}:raise AnalysisError('AI 응답이 완료되지 않았습니다. 문서를 나누거나 출력 한도를 확인하세요.')
-        raw=''.join(c.get('text','') for item in result.get('output',[]) for c in item.get('content',[]) if c.get('type')=='output_text')
+        raise AnalysisError('로컬 AI의 안전한 문맥 크기를 초과했습니다. 문서를 더 짧게 나누어 분석하세요. 일부 내용을 생략해 분석하지 않습니다.')
+    payload={'model':config.model,'stream':False,'format':SCHEMA,'options':{'temperature':0,'num_ctx':32768,'num_predict':8192},
+             'messages':[{'role':'system','content':INSTRUCTIONS},{'role':'user','content':prompt,'images':list(images)}]}
+    result=request_json(config.endpoint.rstrip('/')+'/api/chat',payload,timeout=config.timeout)
+    if result.get('done_reason')=='length' or result.get('done') is False:raise AnalysisError('AI 출력 한도에 도달했습니다. 문서를 나누어 재시도하세요.')
+    raw=result.get('message',{}).get('content','')
     try:
         value=json.loads(raw)
         if not isinstance(value,dict) or not isinstance(value.get('models'),list) or not isinstance(value.get('shared'),list):raise ValueError()
@@ -252,6 +241,8 @@ def decode(doc,responses):
 
 def analyze_ai(path,category,config,progress=None):
     config.validate()
+    details=request_json(config.endpoint.rstrip('/')+'/api/show',{'model':config.model},timeout=20)
+    validate_local_model(details)
     doc=read_document(path,ocr=True)
     if len(doc.pages)>100 or len(doc.text)>300000:raise AnalysisError('AI 분석 한도(100페이지/글자 30만 자)를 초과했습니다. 문서를 나누어 주세요. 일부 페이지를 생략하지는 않습니다.')
     fields=json.dumps({k:FIELDS[k]+EXTRAS[k]+['판매 코드','폼팩터','보증','제품군 모델명'] for k in FIELDS},ensure_ascii=False)
@@ -271,7 +262,7 @@ def analyze_ai(path,category,config,progress=None):
 
     # Each batch sees the global inventory, so catalogues and specs can be on different pages.
     with fitz.open(doc.source) as pdf:
-        batch_size=1 if config.provider=='ollama' else 2
+        batch_size=1
         for start in range(0,len(doc.pages),batch_size):
             batch=doc.pages[start:start+batch_size];images=[]
             for p in batch:
@@ -303,3 +294,10 @@ def inventory_blocks(doc,limit=9000):
         current+=part+'\n'
     if current:blocks.append(current)
     return blocks
+
+
+def validate_local_model(details):
+    if details.get('remote_host') or details.get('remote_model'):
+        raise AnalysisError('클라우드에서 실행되는 모델입니다. 추가 요금·외부 PDF 전송을 막기 위해 차단했습니다. 로컬 비전 모델을 설치하세요.')
+    if 'vision' not in details.get('capabilities',[]):
+        raise AnalysisError('페이지 이미지를 읽을 수 없는 모델입니다. qwen2.5vl:3b 또는 :7b 같은 로컬 비전 모델을 설치하세요.')

@@ -66,23 +66,26 @@ class AI(unittest.TestCase):
             with self.assertRaises(AnalysisError):AIConfig(endpoint=endpoint).validate()
         with patch('speccompare.ai.request_json',return_value={'message':{'content':'not json'}}):
             with self.assertRaises(AnalysisError):infer(AIConfig(),'test')
-    def test_openai_adapter_uses_images_schema_and_no_storage(self):
-        response={'status':'completed','output':[{'content':[{'type':'output_text','text':json.dumps(self.reply)}]}]}
-        with patch('speccompare.ai.request_json',return_value=response) as call:
-            result=infer(AIConfig('openai','gpt-4.1-mini',api_key='test-only',online_consent=True),'sample',['IMAGE'])
-        args=call.call_args.args;self.assertEqual(args[0],'https://api.openai.com/v1/responses');self.assertFalse(args[1]['store']);self.assertEqual(args[1]['input'][0]['content'][1]['type'],'input_image');self.assertEqual(result,self.reply)
+    def test_paid_online_api_and_cloud_models_are_blocked(self):
+        from speccompare.ai import validate_local_model
+        with patch('speccompare.ai.request_json') as call:
+            with self.assertRaises(AnalysisError):infer(AIConfig('openai','gpt-4.1-mini',api_key='test-only',online_consent=True),'sample')
+            call.assert_not_called()
+        with self.assertRaises(AnalysisError):AIConfig(model='example-cloud').validate()
+        with self.assertRaises(AnalysisError):validate_local_model({'remote_host':'https://cloud.example','capabilities':['vision']})
+        with self.assertRaises(AnalysisError):validate_local_model({'capabilities':['completion']})
     def test_local_http_provider_complete_pipeline(self):
         calls=[];reply=self.reply
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 data=json.loads(self.rfile.read(int(self.headers['Content-Length'])));calls.append((self.path,data))
-                raw=json.dumps({'message':{'content':json.dumps(reply)}}).encode();self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+                raw=json.dumps({'capabilities':['vision','completion']} if self.path=='/api/show' else {'message':{'content':json.dumps(reply)}}).encode();self.send_response(200);self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
             def log_message(self,*args):pass
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         try:products=analyze_ai(self.path,'SSD',AIConfig(endpoint='http://127.0.0.1:'+str(server.server_port)))
         finally:server.shutdown();server.server_close();thread.join()
-        self.assertEqual(len(products),2);self.assertEqual(len(calls),2)
-        self.assertTrue(calls[1][1]['messages'][1]['images']);self.assertEqual(calls[0][0],'/api/chat')
+        self.assertEqual(len(products),2);self.assertEqual(len(calls),3)
+        self.assertTrue(calls[2][1]['messages'][1]['images']);self.assertEqual(calls[0][0],'/api/show')
         self.assertEqual(products[0].values['순차읽기 속도'].text,'확인 필요')
     def test_ocr_scan_english_and_packaged_language_data(self):
         image=None
@@ -157,3 +160,8 @@ class AI(unittest.TestCase):
         with patch('speccompare.ocr.sys.platform','win32'):
             result=data_path(directory)
         self.assertTrue(result.isascii());self.assertEqual((Path(result)/'eng.traineddata').read_bytes(),b'eng.traineddata')
+
+    def test_cloud_backend_blocked_before_any_pdf_is_sent(self):
+        with patch('speccompare.ai.request_json',return_value={'capabilities':['vision'],'remote_model':'paid'}) as call:
+            with self.assertRaises(AnalysisError):analyze_ai('not-opened.pdf','SSD',AIConfig())
+        self.assertEqual(call.call_count,1);self.assertEqual(call.call_args.args[1],{'model':'qwen2.5vl:3b'})
